@@ -30,7 +30,7 @@ class DistributionMeta(MetaType):
         return cls_res
 
 
-class RVTransform(abc.ABC):
+class Transform(abc.ABC):
     @abc.abstractmethod
     def forward(self, value: TensorVariable, *inputs: Variable) -> TensorVariable:
         """Apply the transformation."""
@@ -120,7 +120,7 @@ class TransformValuesOpt:
     # TODO: Type hints, how to specify the DEFAULT_TRANSFORM instead of just `object`?
     def __init__(
         self,
-        values_to_transforms: Dict[TensorVariable, Union[RVTransform, object, None]],
+        values_to_transforms: Dict[TensorVariable, Union[Transform, object, None]],
     ):
         """
         Implements transformation rewrite of value variables, by combining the
@@ -214,7 +214,7 @@ def transform_values(
     return transformed_rv_node.outputs
 
 
-class LogTransform(RVTransform):
+class LogTransform(Transform):
     name = "log"
 
     def forward(self, value, *inputs):
@@ -227,7 +227,7 @@ class LogTransform(RVTransform):
         return value
 
 
-class IntervalTransform(RVTransform):
+class IntervalTransform(Transform):
     name = "interval"
 
     def __init__(self, args_fn):
@@ -264,7 +264,7 @@ class IntervalTransform(RVTransform):
             return value
 
 
-class LogOddsTransform(RVTransform):
+class LogOddsTransform(Transform):
     name = "logodds"
 
     def backward(self, value, *inputs):
@@ -278,7 +278,7 @@ class LogOddsTransform(RVTransform):
         return at.log(sigmoid_value) + at.log1p(-sigmoid_value)
 
 
-class StickBreaking(RVTransform):
+class StickBreaking(Transform):
     name = "stickbreaking"
 
     def forward(self, value, *inputs):
@@ -303,7 +303,7 @@ class StickBreaking(RVTransform):
         return at.sum(res, -1)
 
 
-class CircularTransform(RVTransform):
+class CircularTransform(Transform):
     name = "circular"
 
     def backward(self, value, *inputs):
@@ -318,7 +318,7 @@ class CircularTransform(RVTransform):
 
 def create_transformed_rv_op(
     rv_op: Op,
-    transform: RVTransform,
+    transform: Transform,
     *,
     default: bool = False,
     cls_dict_extra: Optional[Dict] = None,

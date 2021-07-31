@@ -10,7 +10,7 @@ from aeppl.transforms import (
     DEFAULT_TRANSFORM,
     LogOddsTransform,
     LogTransform,
-    RVTransform,
+    Transform,
     TransformValuesOpt,
     _default_transformed_rv_op,
 )
@@ -212,7 +212,7 @@ def test_fallback_log_jac_det():
     simple transformation: x**2 -> -log(2*x)
     """
 
-    class SquareTransform(RVTransform):
+    class SquareTransform(Transform):
         name = "square"
 
         def forward(self, value, *inputs):
