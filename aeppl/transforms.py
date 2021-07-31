@@ -15,7 +15,7 @@ from aesara.tensor.var import TensorVariable
 from aeppl.logprob import _logprob
 
 
-class DistributionMeta(MetaType):
+class TransformedRVMeta(MetaType):
     def __new__(cls, name, bases, clsdict):
         cls_res = super().__new__(cls, name, bases, clsdict)
         base_op = clsdict.get("base_op", None)
@@ -49,7 +49,7 @@ class Transform(abc.ABC):
         return at.log(at.nlinalg.det(at.atleast_2d(jacobian(phi_inv, [value]))))
 
 
-class TransformedRV(RandomVariable, metaclass=DistributionMeta):
+class TransformedRV(RandomVariable, metaclass=TransformedRVMeta):
     r"""A base class for transformed `RandomVariable`\s."""
 
 
