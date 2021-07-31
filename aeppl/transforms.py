@@ -1,13 +1,13 @@
 import abc
 from functools import singledispatch
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Union
 
 import aesara.tensor as at
 from aesara.gradient import jacobian
 from aesara.graph.basic import Node, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import local_optimizer
+from aesara.graph.opt import Feature, in2out, local_optimizer
 from aesara.graph.utils import MetaType
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.var import TensorVariable
@@ -15,34 +15,17 @@ from aesara.tensor.var import TensorVariable
 from aeppl.logprob import _logprob
 
 
-@singledispatch
-def _default_transformed_rv(
-    op: Op,
-    node: Node,
-) -> Optional[TensorVariable]:
-    """Create a graph for a transformed log-probability of a ``RandomVariable``.
-
-    This function dispatches on the type of ``op``, which should be a subclass
-    of ``RandomVariable``.  If you want to implement new transforms for a
-    ``RandomVariable``, register a function on this dispatcher.
-
-    """
-    return None
-
-
 class DistributionMeta(MetaType):
     def __new__(cls, name, bases, clsdict):
         cls_res = super().__new__(cls, name, bases, clsdict)
         base_op = clsdict.get("base_op", None)
+        default = clsdict.get("default", False)
 
-        if base_op is not None:
+        if default and base_op is not None:
             # Create dispatch functions
-            @_default_transformed_rv.register(type(base_op))
-            def class_transformed_rv(op, node):
-                new_op = cls_res()
-                res = new_op.make_node(*node.inputs)
-                res.outputs[1].name = node.outputs[1].name
-                return res
+            @_default_transformed_rv_op.register(type(base_op))
+            def default_transformed_rv_op(op):
+                return cls_res()
 
         return cls_res
 
@@ -70,15 +53,32 @@ class TransformedRV(RandomVariable, metaclass=DistributionMeta):
     r"""A base class for transformed `RandomVariable`\s."""
 
 
+@singledispatch
+def _default_transformed_rv_op(
+    op: Op,
+) -> Optional[Type[TransformedRV]]:
+    """Return a default ``TransformedRV`` for a given ``RandomVariable`` ``Op``.
+
+    This function dispatches on the type of ``Op``, which should be a subclass
+    of ``RandomVariable``.  If you want to implement new transforms for a
+    ``RandomVariable``, register a function on this dispatcher.
+
+    """
+    return None
+
+
 @_logprob.register(TransformedRV)
 def transformed_logprob(op, value, *inputs, name=None, **kwargs):
     """
-    Compute logp graph for a value variable that was back-transformed to be on
-    the natural support of the respective random variable.
+    Compute logp graph for a TransformedRV whose value variable was already
+    back-transformed to be on the natural support of the base random variable.
     """
 
     logprob = _logprob(op.base_op, value, *inputs, name=name, **kwargs)
 
+    # TODO: Make sure the backward and forward functions for standard transforms
+    #  are optimized away by Aesara (e.g, Sigmoid is not), otherwise our graphs
+    #  are more complex than what they need to be
     original_forward_value = op.transform.forward(value, *inputs)
     jacobian = op.transform.log_jac_det(original_forward_value, *inputs)
 
@@ -89,50 +89,129 @@ def transformed_logprob(op, value, *inputs, name=None, **kwargs):
     return logprob + jacobian
 
 
+DEFAULT_TRANSFORM = object()
+
+
+class TransformValuesMapping(Feature):
+    r"""A `Feature` that maintains a map between value variables and their transforms."""
+
+    def __init__(self, values_to_transforms):
+        self.values_to_transforms = values_to_transforms
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "transform_values_mapping"):
+            raise ValueError(
+                f"{fgraph} already has the `TransformValuesMapping` feature attached."
+            )
+
+        fgraph.transform_values_mapping = self
+
+    def on_detach(self, fgraph):
+        if self.values_to_transforms:
+            raise RuntimeError(
+                "The following value variables could not be transformed: {}".format(
+                    *self.values_to_transforms
+                )
+            )
+        del fgraph.transform_values_mapping
+
+
+class TransformValuesOpt:
+    # TODO: Type hints, how to specify the DEFAULT_TRANSFORM instead of just `object`?
+    def __init__(
+        self,
+        values_to_transforms: Dict[TensorVariable, Union[RVTransform, object, None]],
+    ):
+        """
+        Implements transformation rewrite of value variables, by combining the
+        `TransformValuesMapping` Feature with the `transform_values` local
+        optimizer.
+
+        Parameters
+        ==========
+        values_to_transforms
+            Mapping between value variables and their transformations.
+            Each value variable can be assigned one of `RVTransform`,
+            `DEFAULT_TRANSFORM`, or `None`. If a transform is not specified for
+            a specific value variable it will not be transformed.
+
+        Raises
+        ======
+        RuntimeError
+            If any of the specified value variables is not successfully transformed
+
+        """
+
+        self.values_to_transforms = values_to_transforms
+
+    def optimize(self, fgraph: FunctionGraph):
+        values_transforms_feature = TransformValuesMapping(
+            self.values_to_transforms.copy()
+        )
+        fgraph.attach_feature(values_transforms_feature)
+
+        transform_values_opt = in2out(transform_values, ignore_newtrees=True)
+        transform_values_opt.optimize(fgraph)
+
+        fgraph.remove_feature(values_transforms_feature)
+
+
 @local_optimizer(tracks=None)
-def default_transform(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
+def transform_values(
+    fgraph: FunctionGraph, node: Node
+) -> Optional[List[TransformedRV]]:
     """
-    Apply default transform to value variables. It is assumed that the input
-    value variables correspond to forward transformations, usually chosen in
-    such a way that the values are unconstrained on the real line.
+    Apply transforms to the value variables specified in a `TransformValuesMapping`
+    Feature. It is assumed that the input value variables correspond to forward
+    transformations, usually chosen in such a way that the values are unconstrained
+    on the real line.
 
     e.g., if Y ~ HalfNormal, we assume the respective value variable is specified
     on the log scale and back-transform it to obtain Y on the natural scale.
     """
 
     rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+    transform_map_feature = getattr(fgraph, "transform_values_mapping", None)
 
-    if rv_map_feature is None:
+    if rv_map_feature is None or transform_map_feature is None:
         return None  # pragma: no cover
 
-    if not isinstance(node.op, RandomVariable):
-        return None  # pragma: no cover
+    rv_var = node.default_output()
 
-    trans_node = _default_transformed_rv(node.op, node)
+    value_var = rv_map_feature.rv_values.get(rv_var, None)
+    if value_var is None:
+        return None
 
-    if trans_node is None:
-        return None  # pragma: no cover
+    transform = transform_map_feature.values_to_transforms.pop(value_var, None)
 
-    # Get the old value variable and remove it from our value variables map
-    rv_var = node.outputs[1]
-    old_value_var = rv_map_feature.rv_values.pop(rv_var)
+    if transform is None:
+        return None
+    elif transform is DEFAULT_TRANSFORM:
+        transformed_rv_op = _default_transformed_rv_op(node.op)
+        if transformed_rv_op is None:
+            return None
+        transform = transformed_rv_op.transform
+    else:
+        transformed_rv_op = create_transformed_rv_op(node.op, transform)()
 
-    transform = trans_node.op.transform
+    # Create TransformedRV
+    transformed_rv_node = transformed_rv_op.make_node(*node.inputs)
+    new_rv_var = transformed_rv_node.outputs[1]
+    new_rv_var.name = rv_var.name
 
-    # We now assume that the old value variable represents the *transformed space*.
+    # We now assume that the original value variable represents the *transformed space*.
     # This means that we need to replace all instance of the old value variable
     # with "inversely/un-" transformed versions of itself.
-    new_value_var = transform.backward(old_value_var, *trans_node.inputs)
+    new_value_var = transform.backward(value_var, *node.inputs)
+
+    if value_var.name and getattr(transform, "name", None):
+        new_value_var.name = f"{value_var.name}_{transform.name}"
+
+    # Map old and new transformed RVs to new value_var
+    rv_map_feature.rv_values[new_rv_var] = new_value_var
     rv_map_feature.rv_values[rv_var] = new_value_var
 
-    new_rv_var = trans_node.outputs[1]
-
-    if old_value_var.name and getattr(transform, "name", None):
-        new_value_var.name = f"{old_value_var.name}_{transform.name}"
-
-    rv_map_feature.rv_values[new_rv_var] = new_value_var
-
-    return trans_node.outputs
+    return transformed_rv_node.outputs
 
 
 class LogTransform(RVTransform):
@@ -237,11 +316,19 @@ class CircularTransform(RVTransform):
         return at.zeros(value.shape)
 
 
-def create_default_transformed_rv_op(
+def create_transformed_rv_op(
     rv_op: Op,
     transform: RVTransform,
+    *,
+    default: bool = False,
     cls_dict_extra: Optional[Dict] = None,
 ) -> Type[TransformedRV]:
+    """Create a new ``TransformedRV`` given a base ``RandomVariable`` ``Op``
+
+    Pass `default = True` to specify that the returned ``TransformedRV`` should
+    be the default transformation for the base ``RandomVariable``
+
+    """
 
     trans_name = getattr(transform, "name", "transformed")
     rv_type_name = type(rv_op).__name__
@@ -251,6 +338,7 @@ def create_default_transformed_rv_op(
         cls_dict["name"] = f"{rv_name}_{trans_name}"
     cls_dict["base_op"] = rv_op
     cls_dict["transform"] = transform
+    cls_dict["default"] = default
 
     if cls_dict_extra is not None:
         cls_dict.update(cls_dict_extra)
@@ -260,67 +348,82 @@ def create_default_transformed_rv_op(
     return new_op_type
 
 
-TransformedUniformRV = create_default_transformed_rv_op(
+TransformedUniformRV = create_transformed_rv_op(
     at.random.uniform,
     # inputs[3] = lower; inputs[4] = upper
     IntervalTransform(lambda *inputs: (inputs[3], inputs[4])),
+    default=True,
 )
-TransformedParetoRV = create_default_transformed_rv_op(
+TransformedParetoRV = create_transformed_rv_op(
     at.random.pareto,
     # inputs[3] = alpha
     IntervalTransform(lambda *inputs: (inputs[3], None)),
+    default=True,
 )
-TransformedTriangularRV = create_default_transformed_rv_op(
+TransformedTriangularRV = create_transformed_rv_op(
     at.random.triangular,
     # inputs[3] = lower; inputs[5] = upper
     IntervalTransform(lambda *inputs: (inputs[3], inputs[5])),
+    default=True,
 )
-TransformedHalfNormalRV = create_default_transformed_rv_op(
+TransformedHalfNormalRV = create_transformed_rv_op(
     at.random.halfnormal,
     # inputs[3] = loc
     IntervalTransform(lambda *inputs: (inputs[3], None)),
+    default=True,
 )
-TransformedWaldRV = create_default_transformed_rv_op(
+TransformedWaldRV = create_transformed_rv_op(
     at.random.wald,
     LogTransform(),
+    default=True,
 )
-TransformedExponentialRV = create_default_transformed_rv_op(
+TransformedExponentialRV = create_transformed_rv_op(
     at.random.exponential,
     LogTransform(),
+    default=True,
 )
-TransformedLognormalRV = create_default_transformed_rv_op(
+TransformedLognormalRV = create_transformed_rv_op(
     at.random.lognormal,
     LogTransform(),
+    default=True,
 )
-TransformedHalfCauchyRV = create_default_transformed_rv_op(
+TransformedHalfCauchyRV = create_transformed_rv_op(
     at.random.halfcauchy,
     LogTransform(),
+    default=True,
 )
-TransformedGammaRV = create_default_transformed_rv_op(
+TransformedGammaRV = create_transformed_rv_op(
     at.random.gamma,
     LogTransform(),
+    default=True,
 )
-TransformedInvGammaRV = create_default_transformed_rv_op(
+TransformedInvGammaRV = create_transformed_rv_op(
     at.random.invgamma,
     LogTransform(),
+    default=True,
 )
-TransformedChiSquareRV = create_default_transformed_rv_op(
+TransformedChiSquareRV = create_transformed_rv_op(
     at.random.chisquare,
     LogTransform(),
+    default=True,
 )
-TransformedWeibullRV = create_default_transformed_rv_op(
+TransformedWeibullRV = create_transformed_rv_op(
     at.random.weibull,
     LogTransform(),
+    default=True,
 )
-TransformedBetaRV = create_default_transformed_rv_op(
+TransformedBetaRV = create_transformed_rv_op(
     at.random.beta,
     LogOddsTransform(),
+    default=True,
 )
-TransformedVonMisesRV = create_default_transformed_rv_op(
+TransformedVonMisesRV = create_transformed_rv_op(
     at.random.vonmises,
     CircularTransform(),
+    default=True,
 )
-TransformedDirichletRV = create_default_transformed_rv_op(
+TransformedDirichletRV = create_transformed_rv_op(
     at.random.dirichlet,
     StickBreaking(),
+    default=True,
 )

@@ -3,11 +3,17 @@ import aesara.tensor as at
 import numpy as np
 import pytest
 import scipy as sp
-from aesara.graph.opt import in2out
 from numdifftools import Jacobian
 
 from aeppl.joint_logprob import joint_logprob
-from aeppl.transforms import RVTransform, _default_transformed_rv, default_transform
+from aeppl.transforms import (
+    DEFAULT_TRANSFORM,
+    LogOddsTransform,
+    LogTransform,
+    RVTransform,
+    TransformValuesOpt,
+    _default_transformed_rv_op,
+)
 from tests.utils import assert_no_rvs
 
 
@@ -140,7 +146,7 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
     b_value_var = b.clone()
     b_value_var.name = "b_value"
 
-    transform_opt = in2out(default_transform, ignore_newtrees=True)
+    transform_opt = TransformValuesOpt({a_value_var: DEFAULT_TRANSFORM})
     res = joint_logprob(
         b, {a: a_value_var, b: b_value_var}, extra_rewrites=transform_opt
     )
@@ -150,7 +156,7 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
     decimals = 6 if aesara.config.floatX == "float64" else 4
     logp_vals_fn = aesara.function([a_value_var, b_value_var], res)
 
-    a_trans_op = _default_transformed_rv(a.owner.op, a.owner).op
+    a_trans_op = _default_transformed_rv_op(a.owner.op)
     transform = a_trans_op.transform
 
     a_forward_fn = aesara.function(
@@ -191,7 +197,7 @@ def test_simple_transformed_logprob():
     x_rv = at.random.halfnormal(0, 3, name="x_rv")
     x = x_rv.clone()
 
-    transform_opt = in2out(default_transform, ignore_newtrees=True)
+    transform_opt = TransformValuesOpt({x: DEFAULT_TRANSFORM})
     tr_logp = joint_logprob(x_rv, {x_rv: x}, extra_rewrites=transform_opt)
 
     assert np.isclose(
@@ -238,7 +244,13 @@ def test_hierarchical_uniform_transform():
     upper = upper_rv.clone()
     x = x_rv.clone()
 
-    transform_opt = in2out(default_transform, ignore_newtrees=True)
+    transform_opt = TransformValuesOpt(
+        {
+            lower: DEFAULT_TRANSFORM,
+            upper: DEFAULT_TRANSFORM,
+            x: DEFAULT_TRANSFORM,
+        }
+    )
     logp = joint_logprob(
         x_rv,
         {lower_rv: lower, upper_rv: upper, x_rv: x},
@@ -247,3 +259,96 @@ def test_hierarchical_uniform_transform():
 
     assert_no_rvs(logp)
     assert not np.isinf(logp.eval({lower: -10, upper: 20, x: -20}))
+
+
+def test_nondefault_transforms():
+    loc_rv = at.random.uniform(-10, 10, name="loc")
+    scale_rv = at.random.uniform(-1, 1, name="scale")
+    x_rv = at.random.normal(loc_rv, scale_rv, name="x")
+
+    loc = loc_rv.clone()
+    scale = scale_rv.clone()
+    x = x_rv.clone()
+
+    transform_opt = TransformValuesOpt(
+        {
+            loc: None,
+            scale: LogOddsTransform(),
+            x: LogTransform(),
+        }
+    )
+
+    logp = joint_logprob(
+        x_rv,
+        {loc_rv: loc, scale_rv: scale, x_rv: x},
+        extra_rewrites=transform_opt,
+    )
+
+    # Check transform_opt dictionary was not changed in-place
+    assert transform_opt.values_to_transforms[loc] is None
+    assert isinstance(transform_opt.values_to_transforms[scale], LogOddsTransform)
+    assert isinstance(transform_opt.values_to_transforms[x], LogTransform)
+
+    # Check numerical evaluation matches with expected transforms
+    loc_val = 0
+    scale_val_tr = -1
+    x_val_tr = -1
+
+    scale_val = sp.special.expit(scale_val_tr)
+    x_val = np.exp(x_val_tr)
+
+    exp_logp = 0
+    exp_logp += sp.stats.uniform(-10, 20).logpdf(loc_val)
+    exp_logp += sp.stats.uniform(-1, 2).logpdf(scale_val)
+    exp_logp += np.log(scale_val) + np.log1p(-scale_val)  # logodds log_jac_det
+    exp_logp += sp.stats.norm(loc_val, scale_val).logpdf(x_val)
+    exp_logp += x_val_tr  # log log_jac_det
+
+    assert np.isclose(
+        logp.eval({loc: loc_val, scale: scale_val_tr, x: x_val_tr}),
+        exp_logp,
+    )
+
+
+def test_nonexistent_default_transform():
+    """
+    Test that setting `DEFAULT_TRANSFORM` to a variable that has no default
+    transform does not fail
+    """
+    x_rv = at.random.normal(name="x")
+    x = x_rv.clone()
+
+    transform_opt = TransformValuesOpt({x: DEFAULT_TRANSFORM})
+
+    logp = joint_logprob(
+        x_rv,
+        {x_rv: x},
+        extra_rewrites=transform_opt,
+    )
+
+    assert np.isclose(
+        logp.eval({x: 1}),
+        sp.stats.norm(0, 1).logpdf(1),
+    )
+
+
+def test_TransformValuesOpt_raises():
+    """
+    Test that `TransformValuesOpt` raises exception if a specified value variable
+    is not transformed
+    """
+    x_rv = at.random.normal(name="x")
+
+    x = x_rv.clone()
+    y = x_rv.type()
+    y.name = "y"
+
+    transform_opt = TransformValuesOpt({x: DEFAULT_TRANSFORM, y: DEFAULT_TRANSFORM})
+
+    msg = "The following value variables could not be transformed: y"
+    with pytest.raises(RuntimeError, match=msg):
+        joint_logprob(
+            x_rv,
+            {x_rv: x},
+            extra_rewrites=transform_opt,
+        )
