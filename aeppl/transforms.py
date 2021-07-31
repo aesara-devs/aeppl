@@ -15,21 +15,6 @@ from aesara.tensor.var import TensorVariable
 from aeppl.logprob import _logprob
 
 
-class TransformedRVMeta(MetaType):
-    def __new__(cls, name, bases, clsdict):
-        cls_res = super().__new__(cls, name, bases, clsdict)
-        base_op = clsdict.get("base_op", None)
-        default = clsdict.get("default", False)
-
-        if default and base_op is not None:
-            # Create dispatch functions
-            @_default_transformed_rv_op.register(type(base_op))
-            def default_transformed_rv_op(op):
-                return cls_res()
-
-        return cls_res
-
-
 class Transform(abc.ABC):
     @abc.abstractmethod
     def forward(self, value: TensorVariable, *inputs: Variable) -> TensorVariable:
@@ -49,8 +34,55 @@ class Transform(abc.ABC):
         return at.log(at.nlinalg.det(at.atleast_2d(jacobian(phi_inv, [value]))))
 
 
+class TransformedRVMeta(MetaType):
+    def __new__(cls, name, bases, clsdict):
+        cls_res = super().__new__(cls, name, bases, clsdict)
+        base_op = clsdict.get("base_op", None)
+        default = clsdict.get("default", False)
+
+        if default and base_op is not None:
+            # Create dispatch functions
+            @_default_transformed_rv_op.register(type(base_op))
+            def default_transformed_rv_op(op):
+                return cls_res()
+
+        return cls_res
+
+
 class TransformedRV(RandomVariable, metaclass=TransformedRVMeta):
     r"""A base class for transformed `RandomVariable`\s."""
+
+
+def create_transformed_rv_op(
+    rv_op: Op,
+    transform: Transform,
+    *,
+    default: bool = False,
+    cls_dict_extra: Optional[Dict] = None,
+) -> Type[TransformedRV]:
+    """Create a new ``TransformedRV`` given a base ``RandomVariable`` ``Op``
+
+    Pass `default = True` to specify that the returned ``TransformedRV`` should
+    be the default transformation for the base ``RandomVariable``
+
+    """
+
+    trans_name = getattr(transform, "name", "transformed")
+    rv_type_name = type(rv_op).__name__
+    cls_dict = type(rv_op).__dict__.copy()
+    rv_name = cls_dict.get("name", "")
+    if rv_name:
+        cls_dict["name"] = f"{rv_name}_{trans_name}"
+    cls_dict["base_op"] = rv_op
+    cls_dict["transform"] = transform
+    cls_dict["default"] = default
+
+    if cls_dict_extra is not None:
+        cls_dict.update(cls_dict_extra)
+
+    new_op_type = type(f"Transformed{rv_type_name}", (TransformedRV,), cls_dict)
+
+    return new_op_type
 
 
 @singledispatch
@@ -65,28 +97,6 @@ def _default_transformed_rv_op(
 
     """
     return None
-
-
-@_logprob.register(TransformedRV)
-def transformed_logprob(op, value, *inputs, name=None, **kwargs):
-    """
-    Compute logp graph for a TransformedRV whose value variable was already
-    back-transformed to be on the natural support of the base random variable.
-    """
-
-    logprob = _logprob(op.base_op, value, *inputs, name=name, **kwargs)
-
-    # TODO: Make sure the backward and forward functions for standard transforms
-    #  are optimized away by Aesara (e.g, Sigmoid is not), otherwise our graphs
-    #  are more complex than what they need to be
-    original_forward_value = op.transform.forward(value, *inputs)
-    jacobian = op.transform.log_jac_det(original_forward_value, *inputs)
-
-    if name:
-        logprob.name = f"{name}_logprob"
-        jacobian.name = f"{name}_logprob_jac"
-
-    return logprob + jacobian
 
 
 DEFAULT_TRANSFORM = object()
@@ -214,6 +224,28 @@ def transform_values(
     return transformed_rv_node.outputs
 
 
+@_logprob.register(TransformedRV)
+def transformed_logprob(op, value, *inputs, name=None, **kwargs):
+    """
+    Compute logp graph for a TransformedRV whose value variable was already
+    back-transformed to be on the natural support of the base random variable.
+    """
+
+    logprob = _logprob(op.base_op, value, *inputs, name=name, **kwargs)
+
+    # TODO: Make sure the backward and forward functions for standard transforms
+    #  are optimized away by Aesara (e.g, Sigmoid is not), otherwise our graphs
+    #  are more complex than what they need to be
+    original_forward_value = op.transform.forward(value, *inputs)
+    jacobian = op.transform.log_jac_det(original_forward_value, *inputs)
+
+    if name:
+        logprob.name = f"{name}_logprob"
+        jacobian.name = f"{name}_logprob_jac"
+
+    return logprob + jacobian
+
+
 class LogTransform(Transform):
     name = "log"
 
@@ -314,38 +346,6 @@ class CircularTransform(Transform):
 
     def log_jac_det(self, value, *inputs):
         return at.zeros(value.shape)
-
-
-def create_transformed_rv_op(
-    rv_op: Op,
-    transform: Transform,
-    *,
-    default: bool = False,
-    cls_dict_extra: Optional[Dict] = None,
-) -> Type[TransformedRV]:
-    """Create a new ``TransformedRV`` given a base ``RandomVariable`` ``Op``
-
-    Pass `default = True` to specify that the returned ``TransformedRV`` should
-    be the default transformation for the base ``RandomVariable``
-
-    """
-
-    trans_name = getattr(transform, "name", "transformed")
-    rv_type_name = type(rv_op).__name__
-    cls_dict = type(rv_op).__dict__.copy()
-    rv_name = cls_dict.get("name", "")
-    if rv_name:
-        cls_dict["name"] = f"{rv_name}_{trans_name}"
-    cls_dict["base_op"] = rv_op
-    cls_dict["transform"] = transform
-    cls_dict["default"] = default
-
-    if cls_dict_extra is not None:
-        cls_dict.update(cls_dict_extra)
-
-    new_op_type = type(f"Transformed{rv_type_name}", (TransformedRV,), cls_dict)
-
-    return new_op_type
 
 
 TransformedUniformRV = create_transformed_rv_op(
