@@ -897,7 +897,7 @@ the observations variable or the measure/log-probability value variable.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="aeppl.utils.indices_from_subtensor">
 <span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">indices_from_subtensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.utils.indices_from_subtensor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute a useable index tuple from the inputs of a <code class="docutils literal notranslate"><span class="pre">*Subtensor**</span></code> <code class="docutils literal notranslate"><span class="pre">Op</span></code>.</p>
+<dd><p>Compute a useable index tuple from the inputs of a <cite>*Subtensor**</cite> <cite>Op</cite>.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -930,11 +930,11 @@ replacements that were made.</p>
 <dt class="sig sig-object py" id="aeppl.utils.walk_model">
 <span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">walk_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">graphs:</span> <span class="pre">Iterable[aesara.tensor.var.TensorVariable],</span> <span class="pre">walk_past_rvs:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">stop_at_vars:</span> <span class="pre">Optional[Set[aesara.tensor.var.TensorVariable]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">expand_fn:</span> <span class="pre">Callable[[aesara.tensor.var.TensorVariable],</span> <span class="pre">List[aesara.tensor.var.TensorVariable]]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.utils.walk_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Walk model graphs and yield their nodes.</p>
-<p>By default, these walks will not go past <code class="docutils literal notranslate"><span class="pre">MeasurableVariable</span></code> nodes.</p>
+<p>By default, these walks will not go past <cite>MeasurableVariable</cite> nodes.</p>
 <dl class="simple">
 <dt>graphs</dt><dd><p>The graphs to walk.</p>
 </dd>
-<dt>walk_past_rvs</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the walk will not terminate at <a href="#id1"><span class="problematic" id="id2">``</span></a>MeasurableVariable``s.</p>
+<dt>walk_past_rvs</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the walk will not terminate at <cite>MeasurableVariable</cite>s.</p>
 </dd>
 <dt>stop_at_vars</dt><dd><p>A list of variables at which the walk will terminate.</p>
 </dd>
