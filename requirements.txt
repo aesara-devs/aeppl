@@ -11,3 +11,8 @@ diff-cover
 autoflake
 pre-commit
 numdifftools
+sphinx-autobuild==0.7.1
+sphinx>=1.5.5
+nbsphinx>=0.2.13
+recommonmark>=0.4.0
+ghp-import

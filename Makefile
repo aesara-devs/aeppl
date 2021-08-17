@@ -1,4 +1,4 @@
-.PHONY: help venv conda docker docstyle format style black test lint check coverage pypi
+.PHONY: help venv conda docker docstyle format style black test lint check coverage pypi docs
 .DEFAULT_GOAL = help
 
 PROJECT_NAME = aeppl
@@ -12,7 +12,7 @@ help:
 	@printf "Usage:\n"
 	@grep -E '^[a-zA-Z_-]+:.*?# .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?# "}; {printf "\033[1;34mmake %-10s\033[0m%s\n", $$1, $$2}'
 
-conda:  # Set up a conda environment for development.
+conda:
 	@printf "Creating conda environment...\n"
 	${CONDA} create --yes --name ${PROJECT_NAME}-env python=3.7
 	( \
@@ -24,7 +24,7 @@ conda:  # Set up a conda environment for development.
 	)
 	@printf "\n\nConda environment created! \033[1;34mRun \`conda activate ${PROJECT_NAME}-env\` to activate it.\033[0m\n\n\n"
 
-venv:  # Set up a Python virtual environment for development.
+venv:
 	@printf "Creating Python virtual environment...\n"
 	rm -rf ${PROJECT_NAME}-venv
 	${PYTHON} -m venv ${PROJECT_NAME}-venv
@@ -37,7 +37,7 @@ venv:  # Set up a Python virtual environment for development.
 	)
 	@printf "\n\nVirtual environment created! \033[1;34mRun \`source ${PROJECT_NAME}-venv/bin/activate\` to activate it.\033[0m\n\n\n"
 
-docker:  # Set up a Docker image for development.
+docker:
 	@printf "Creating Docker image...\n"
 	${SHELL} ./scripts/container.sh --build
 
@@ -71,6 +71,13 @@ pypi:
 	${PYTHON} setup.py sdist bdist_wheel; \
   twine upload --skip-existing dist/*;
 
-lint: docstyle format style  # Lint code using pydocstyle, black and pylint.
+lint: docstyle format style
 
-check: lint test coverage  # Both lint and test code. Runs `make lint` followed by `make test`.
+check: lint test coverage
+
+docs:
+	pushd docs && \
+	sphinx-apidoc ../${PROJECT_DIR} -o source --force && \
+	make html && \
+	ghp-import -n -p -r upstream -b gh-pages build/html && \
+	popd

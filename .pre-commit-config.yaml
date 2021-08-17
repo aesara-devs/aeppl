@@ -2,7 +2,7 @@ exclude: |
     (?x)^(
         versioneer\.py|
         aeppl/_version\.py|
-        doc/.*|
+        docs/.*|
         bin/.*
     )$
 repos:

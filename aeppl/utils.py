@@ -134,16 +134,16 @@ def walk_model(
     stop_at_vars: Optional[Set[TensorVariable]] = None,
     expand_fn: Callable[[TensorVariable], List[TensorVariable]] = lambda var: [],
 ) -> Generator[TensorVariable, None, None]:
-    """Walk model graphs and yield their nodes.
+    r"""Walk model graphs and yield their nodes.
 
-    By default, these walks will not go past ``MeasurableVariable`` nodes.
+    By default, these walks will not go past `MeasurableVariable` nodes.
 
     Parameters
     ==========
     graphs
         The graphs to walk.
     walk_past_rvs
-        If ``True``, the walk will not terminate at ``MeasurableVariable``s.
+        If ``True``, the walk will not terminate at `MeasurableVariable`\s.
     stop_at_vars
         A list of variables at which the walk will terminate.
     expand_fn
@@ -276,7 +276,7 @@ def convert_indices(indices, entry):
 
 
 def indices_from_subtensor(idx_list, indices):
-    """Compute a useable index tuple from the inputs of a ``*Subtensor**`` ``Op``."""
+    """Compute a useable index tuple from the inputs of a `*Subtensor**` `Op`."""
     return tuple(
         tuple(convert_indices(list(indices), idx) for idx in idx_list)
         if idx_list
