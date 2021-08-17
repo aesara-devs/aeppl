@@ -1,0 +1,1015 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>aeppl package &#8212; AePPL  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="aeppl-package">
+<h1>aeppl package<a class="headerlink" href="#aeppl-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-aeppl.abstract">
+<span id="aeppl-abstract-module"></span><h2>aeppl.abstract module<a class="headerlink" href="#module-aeppl.abstract" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.abstract.MeasurableVariable">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.abstract.</span></span><span class="sig-name descname"><span class="pre">MeasurableVariable</span></span><a class="headerlink" href="#aeppl.abstract.MeasurableVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>A variable that can be assigned a measure/log-probability</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.abstract.get_measurable_outputs">
+<span class="sig-prename descclassname"><span class="pre">aeppl.abstract.</span></span><span class="sig-name descname"><span class="pre">get_measurable_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.abstract.get_measurable_outputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">aeppl.abstract.</span></span><span class="sig-name descname"><span class="pre">get_measurable_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.random.op.RandomVariable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Return only the outputs that are measurable.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.abstract.randomvariable_moutputs">
+<span class="sig-prename descclassname"><span class="pre">aeppl.abstract.</span></span><span class="sig-name descname"><span class="pre">randomvariable_moutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.abstract.randomvariable_moutputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-aeppl.joint_logprob">
+<span id="aeppl-joint-logprob-module"></span><h2>aeppl.joint_logprob module<a class="headerlink" href="#module-aeppl.joint_logprob" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.joint_logprob.joint_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.joint_logprob.</span></span><span class="sig-name descname"><span class="pre">joint_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vars</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rv_values</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_missing_rvs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_rewrites</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.graph.opt.GlobalOptimizer</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.graph.opt.LocalOptimizer</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.joint_logprob.joint_logprob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a graph representing the joint log-probability/measure of a graph.</p>
+<p>The input <cite>var</cite> determines which graph is used and <cite>rv_values</cite> specifies
+the resulting measure-space graph’s input parameters.</p>
+<p>For example, consider the following</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aesara.tensor</span> <span class="k">as</span> <span class="nn">at</span>
+
+<span class="n">Y_rv</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">at</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma2_rv</span><span class="p">))</span>
+<span class="n">sigma2_rv</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">invgamma</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This graph for <code class="docutils literal notranslate"><span class="pre">Y_rv</span></code> is equivalent to the following hierarchical model:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Y \sim&amp; \operatorname{N}(0, \sigma^2) \\
+\sigma^2 \sim&amp; \operatorname{InvGamma}(0.5, 0.5)\end{split}\]</div>
+<p>If we create a value variable for <code class="docutils literal notranslate"><span class="pre">Y_rv</span></code>, i.e. <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">at.scalar(&quot;y&quot;)</span></code>,
+the graph of <code class="docutils literal notranslate"><span class="pre">joint_logprob(Y_rv,</span> <span class="pre">{Y_rv:</span> <span class="pre">y})</span></code> is equivalent to the
+conditional probability <span class="math notranslate nohighlight">\(\log p(Y = y \mid \sigma^2)\)</span>.  If we specify
+a value variable for <code class="docutils literal notranslate"><span class="pre">sigma2_rv</span></code>, i.e. <code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">at.scalar(&quot;s2&quot;)</span></code>, then
+<code class="docutils literal notranslate"><span class="pre">joint_logprob(Y_rv,</span> <span class="pre">{Y_rv:</span> <span class="pre">y,</span> <span class="pre">sigma2_rv:</span> <span class="pre">s})</span></code> yields the joint
+log-probability</p>
+<div class="math notranslate nohighlight">
+\[\log p(Y = y, \sigma^2 = s) =
+    \log p(Y = y \mid \sigma^2 = s) + \log p(\sigma^2 = s)\]</div>
+<dl class="simple">
+<dt>vars</dt><dd><p>The graphs containing the stochastic/<cite>RandomVariable</cite> elements for
+which we want to compute a joint log-probability.  This graph
+effectively represents a statistical model.  When multiple elements are
+given, their log-probabilities are summed, producing their joint
+log-probability.</p>
+</dd>
+<dt>rv_values</dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">dict</span></code> of variables that maps stochastic elements
+(e.g. <cite>RandomVariable</cite>s) to symbolic <cite>Variable</cite>s representing their
+values in a log-probability.</p>
+</dd>
+<dt>warn_missing_rvs</dt><dd><p>When <code class="docutils literal notranslate"><span class="pre">True</span></code>, issue a warning when a <cite>RandomVariable</cite> is found in
+the graph and doesn’t have a corresponding value variable specified in
+<cite>rv_values</cite>.</p>
+</dd>
+<dt>extra_rewrites</dt><dd><p>Extra rewrites to be applied (e.g. reparameterizations, transforms,
+etc.)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-aeppl.logprob">
+<span id="aeppl-logprob-module"></span><h2>aeppl.logprob module<a class="headerlink" href="#module-aeppl.logprob" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.bernoulli_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">bernoulli_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.bernoulli_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.beta_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">beta_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.beta_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.betabinomial_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">betabinomial_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.betabinomial_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.betaln">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">betaln</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.betaln" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.binomial_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">binomial_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.binomial_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.binomln">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">binomln</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.binomln" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.categorical_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">categorical_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.categorical_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.cauchy_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">cauchy_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.cauchy_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.chisquare_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">chisquare_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.chisquare_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.dirichlet_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">dirichlet_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.dirichlet_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.exponential_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">exponential_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.exponential_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.gamma_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">gamma_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.gamma_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.geometric_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">geometric_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.geometric_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.gumbel_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">gumbel_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.gumbel_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.halfcauchy_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">halfcauchy_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.halfcauchy_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.halfnormal_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">halfnormal_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.halfnormal_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.hypergeometric_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">hypergeometric_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.hypergeometric_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.invgamma_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">invgamma_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.invgamma_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.laplace_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">laplace_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.laplace_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.logistic_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">logistic_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.logistic_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.lognormal_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">lognormal_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.lognormal_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rv_var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rv_value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.logprob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a graph for the log-probability of a <code class="docutils literal notranslate"><span class="pre">RandomVariable</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.multinomial_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">multinomial_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.multinomial_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.mvnormal_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">mvnormal_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.mvnormal_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.nbinom_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">nbinom_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.nbinom_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.normal_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">normal_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.normal_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.pareto_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">pareto_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.pareto_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.poisson_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">poisson_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.poisson_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.triangular_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">triangular_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.triangular_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.uniform_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">uniform_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.uniform_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.vonmises_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">vonmises_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.vonmises_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.wald_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">wald_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.wald_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.weibull_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">weibull_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.weibull_logprob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.logprob.xlogy0">
+<span class="sig-prename descclassname"><span class="pre">aeppl.logprob.</span></span><span class="sig-name descname"><span class="pre">xlogy0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.logprob.xlogy0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-aeppl.mixture">
+<span id="aeppl-mixture-module"></span><h2>aeppl.mixture module<a class="headerlink" href="#module-aeppl.mixture" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.mixture.MixtureRV">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.mixture.</span></span><span class="sig-name descname"><span class="pre">MixtureRV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lop_overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad_overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rop_overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.mixture.MixtureRV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.compile.builders.OpFromGraph</span></code></p>
+<p>A placeholder used to specify a log-likelihood for a mixture sub-graph.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.mixture.MixtureRV.create_node">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">create_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mixture_rvs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.mixture.MixtureRV.create_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.mixture.MixtureRV.get_non_shared_inputs">
+<span class="sig-name descname"><span class="pre">get_non_shared_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.mixture.MixtureRV.get_non_shared_inputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.mixture.get_stack_mixture_vars">
+<span class="sig-prename descclassname"><span class="pre">aeppl.mixture.</span></span><span class="sig-name descname"><span class="pre">get_stack_mixture_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Apply</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.mixture.get_stack_mixture_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the mixture terms from a <cite>*Subtensor*</cite> applied to stacked <cite>RandomVariable</cite>s.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.mixture.logprob_MixtureRV">
+<span class="sig-prename descclassname"><span class="pre">aeppl.mixture.</span></span><span class="sig-name descname"><span class="pre">logprob_MixtureRV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.mixture.logprob_MixtureRV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.mixture.rv_pull_down">
+<span class="sig-prename descclassname"><span class="pre">aeppl.mixture.</span></span><span class="sig-name descname"><span class="pre">rv_pull_down</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dont_touch_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.mixture.rv_pull_down" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pull a <code class="docutils literal notranslate"><span class="pre">RandomVariable</span></code> <code class="docutils literal notranslate"><span class="pre">Op</span></code> down through a graph, when possible.</p>
+</dd></dl>
+
+</section>
+<section id="module-aeppl.opt">
+<span id="aeppl-opt-module"></span><h2>aeppl.opt module<a class="headerlink" href="#module-aeppl.opt" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.opt.PreserveRVMappings">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.opt.</span></span><span class="sig-name descname"><span class="pre">PreserveRVMappings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rv_values</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.opt.PreserveRVMappings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.graph.features.Feature</span></code></p>
+<p>Keep track of random variable replacements in a map.</p>
+<p>When a <cite>Variable</cite> that is replaced by optimizations, this <cite>Feature</cite> updates
+the key entries in a map to reflect the new transformed <cite>Variable</cite>s.</p>
+<dl class="simple">
+<dt>rv_values</dt><dd><p>Mappings between random variables and their value variables.
+The keys of this map are what this <cite>Feature</cite> keeps updated.
+The <code class="docutils literal notranslate"><span class="pre">dict</span></code> is updated in-place.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.opt.PreserveRVMappings.on_attach">
+<span class="sig-name descname"><span class="pre">on_attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fgraph</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.opt.PreserveRVMappings.on_attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by <cite>FunctionGraph.attach_feature</cite>, the method that attaches the
+feature to the <cite>FunctionGraph</cite>. Since this is called after the
+<cite>FunctionGraph</cite> is initially populated, this is where you should run
+checks on the initial contents of the <cite>FunctionGraph</cite>.</p>
+<p>The on_attach method may raise the <cite>AlreadyThere</cite> exception to cancel
+the attach operation if it detects that another Feature instance
+implementing the same functionality is already attached to the
+<cite>FunctionGraph</cite>.</p>
+<p>The feature has great freedom in what it can do with the <cite>fgraph</cite>: it
+may, for example, add methods to it dynamically.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.opt.PreserveRVMappings.on_change_input">
+<span class="sig-name descname"><span class="pre">on_change_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fgraph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.opt.PreserveRVMappings.on_change_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called whenever <code class="docutils literal notranslate"><span class="pre">node.inputs[i]</span></code> is changed from <cite>var</cite> to <cite>new_var</cite>.
+At the moment the callback is done, the change has already taken place.</p>
+<p>If you raise an exception in this function, the state of the graph
+might be broken for all intents and purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-aeppl.printing">
+<span id="aeppl-printing-module"></span><h2>aeppl.printing module<a class="headerlink" href="#module-aeppl.printing" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.printing.GenericSubtensorPrinter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">GenericSubtensorPrinter</span></span><a class="headerlink" href="#aeppl.printing.GenericSubtensorPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.GenericSubtensorPrinter.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.GenericSubtensorPrinter.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.printing.NormalRVPrinter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">NormalRVPrinter</span></span><a class="headerlink" href="#aeppl.printing.NormalRVPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.printing.RandomVariablePrinter" title="aeppl.printing.RandomVariablePrinter"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.printing.RandomVariablePrinter</span></code></a></p>
+<p>Create a <cite>RandomVariablePrinter</cite>.</p>
+<dl class="simple">
+<dt>name: str (optional)</dt><dd><p>A fixed name to use for the random variables printed by this
+printer.  If not specified, use <cite>RandomVariable.name</cite>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.NormalRVPrinter.process_param">
+<span class="sig-name descname"><span class="pre">process_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.NormalRVPrinter.process_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform special per-parameter post-formatting.</p>
+<p>This can be used, for instance, to change a std. dev. into a variance.</p>
+<dl class="simple">
+<dt>idx: int</dt><dd><p>The index value of the parameter.</p>
+</dd>
+<dt>sform: str</dt><dd><p>The pre-formatted string form of the parameter.</p>
+</dd>
+<dt>pstate: object</dt><dd><p>The printer state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.printing.PreamblePPrinter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">PreamblePPrinter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate_defaults</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preamble_dict</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.PreamblePPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.printing.PPrinter</span></code></p>
+<p>Pretty printer that displays a preamble.</p>
+<p>Preambles are put into an <cite>OrderedDict</cite> of categories (determined by
+printers that use the preamble).  The order can be set by preempting the
+category names within an <cite>OrderedDict</cite> passed to the constructor via
+the <cite>preamble_dict</cite> keyword.
+The lines accumulated in each category are comma-separated up to a fixed
+length given by <cite>PreamblePPrinter.max_preamble_width</cite>, after which a
+newline is appended and process repeats.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">aesara.tensor</span> <span class="k">as</span> <span class="nn">at</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">aeppl.printing</span> <span class="kn">import</span> <span class="n">pprint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X_rv</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">mu&#39;</span><span class="p">),</span> <span class="n">at</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">sigma&#39;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">pprint</span><span class="p">(</span><span class="n">X_rv</span><span class="p">))</span>
+<span class="go">\\mu in R</span>
+<span class="go">\\sigma in R</span>
+<span class="go">X ~ N(\\mu, \\sigma**2),  X in R</span>
+<span class="go">X</span>
+</pre></div>
+</div>
+<p>XXX: Not thread-safe!</p>
+<p>Create a <cite>PreamblePPrinter</cite>.</p>
+<dl class="simple">
+<dt>pstate_defaults: dict (optional)</dt><dd><p>Default printer state parameters.</p>
+</dd>
+<dt>preamble_dict: OrderedDict (optional)</dt><dd><p>Default preamble dictionary.  Use this to pre-set the print-out
+ordering of preamble categories/keys.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.PreamblePPrinter.create_state">
+<span class="sig-name descname"><span class="pre">create_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.PreamblePPrinter.create_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.printing.PreamblePPrinter.max_preamble_width">
+<span class="sig-name descname"><span class="pre">max_preamble_width</span></span><em class="property"> <span class="pre">=</span> <span class="pre">40</span></em><a class="headerlink" href="#aeppl.printing.PreamblePPrinter.max_preamble_width" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.PreamblePPrinter.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.PreamblePPrinter.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.PreamblePPrinter.process_graph">
+<span class="sig-name descname"><span class="pre">process_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">display_inputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.PreamblePPrinter.process_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.printing.RandomVariablePrinter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">RandomVariablePrinter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.RandomVariablePrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pretty print random variables.</p>
+<p><cite>Op</cite>s are able to specify their ascii and LaTeX formats via a “print_name”
+property.  <cite>Op.print_name</cite> should be a tuple or list that specifies the
+plain text/ascii and LaTeX name, respectively.</p>
+<p>Also, distribution parameters can be formatted distinctly by overriding
+the <cite>RandomVariablePrinter.process_param</cite> method.</p>
+<p>Create a <cite>RandomVariablePrinter</cite>.</p>
+<dl class="simple">
+<dt>name: str (optional)</dt><dd><p>A fixed name to use for the random variables printed by this
+printer.  If not specified, use <cite>RandomVariable.name</cite>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.RandomVariablePrinter.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.RandomVariablePrinter.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.RandomVariablePrinter.process_param">
+<span class="sig-name descname"><span class="pre">process_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sform</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.RandomVariablePrinter.process_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform special per-parameter post-formatting.</p>
+<p>This can be used, for instance, to change a std. dev. into a variance.</p>
+<dl class="simple">
+<dt>idx: int</dt><dd><p>The index value of the parameter.</p>
+</dd>
+<dt>sform: str</dt><dd><p>The pre-formatted string form of the parameter.</p>
+</dd>
+<dt>pstate: object</dt><dd><p>The printer state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">VariableWithShapePrinter</span></span><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Print variable shape info in the preamble.</p>
+<p>Also uses readable character names for un-named variables.</p>
+<p>Constant arrays are only printed when their size is below a threshold
+set by <code class="docutils literal notranslate"><span class="pre">max_line_width</span> <span class="pre">*</span> <span class="pre">max_line_height</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.available_names">
+<span class="sig-name descname"><span class="pre">available_names</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{'A':</span> <span class="pre">None,</span> <span class="pre">'B':</span> <span class="pre">None,</span> <span class="pre">'C':</span> <span class="pre">None,</span> <span class="pre">'D':</span> <span class="pre">None,</span> <span class="pre">'E':</span> <span class="pre">None,</span> <span class="pre">'F':</span> <span class="pre">None,</span> <span class="pre">'G':</span> <span class="pre">None,</span> <span class="pre">'H':</span> <span class="pre">None,</span> <span class="pre">'I':</span> <span class="pre">None,</span> <span class="pre">'J':</span> <span class="pre">None,</span> <span class="pre">'K':</span> <span class="pre">None,</span> <span class="pre">'L':</span> <span class="pre">None,</span> <span class="pre">'M':</span> <span class="pre">None,</span> <span class="pre">'N':</span> <span class="pre">None,</span> <span class="pre">'O':</span> <span class="pre">None,</span> <span class="pre">'P':</span> <span class="pre">None,</span> <span class="pre">'Q':</span> <span class="pre">None,</span> <span class="pre">'R':</span> <span class="pre">None,</span> <span class="pre">'S':</span> <span class="pre">None,</span> <span class="pre">'T':</span> <span class="pre">None,</span> <span class="pre">'U':</span> <span class="pre">None,</span> <span class="pre">'V':</span> <span class="pre">None,</span> <span class="pre">'W':</span> <span class="pre">None,</span> <span class="pre">'X':</span> <span class="pre">None,</span> <span class="pre">'Y':</span> <span class="pre">None,</span> <span class="pre">'Z':</span> <span class="pre">None,</span> <span class="pre">'a':</span> <span class="pre">None,</span> <span class="pre">'b':</span> <span class="pre">None,</span> <span class="pre">'c':</span> <span class="pre">None,</span> <span class="pre">'d':</span> <span class="pre">None,</span> <span class="pre">'e':</span> <span class="pre">None,</span> <span class="pre">'f':</span> <span class="pre">None,</span> <span class="pre">'g':</span> <span class="pre">None,</span> <span class="pre">'h':</span> <span class="pre">None,</span> <span class="pre">'i':</span> <span class="pre">None,</span> <span class="pre">'j':</span> <span class="pre">None,</span> <span class="pre">'k':</span> <span class="pre">None,</span> <span class="pre">'l':</span> <span class="pre">None,</span> <span class="pre">'m':</span> <span class="pre">None,</span> <span class="pre">'n':</span> <span class="pre">None,</span> <span class="pre">'o':</span> <span class="pre">None,</span> <span class="pre">'p':</span> <span class="pre">None,</span> <span class="pre">'q':</span> <span class="pre">None,</span> <span class="pre">'r':</span> <span class="pre">None,</span> <span class="pre">'s':</span> <span class="pre">None,</span> <span class="pre">'t':</span> <span class="pre">None,</span> <span class="pre">'u':</span> <span class="pre">None,</span> <span class="pre">'v':</span> <span class="pre">None,</span> <span class="pre">'w':</span> <span class="pre">None,</span> <span class="pre">'x':</span> <span class="pre">None,</span> <span class="pre">'y':</span> <span class="pre">None,</span> <span class="pre">'z':</span> <span class="pre">None}</span></em><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.available_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.default_printer">
+<span class="sig-name descname"><span class="pre">default_printer</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;aesara.printing.DefaultPrinter</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.default_printer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.max_line_height">
+<span class="sig-name descname"><span class="pre">max_line_height</span></span><em class="property"> <span class="pre">=</span> <span class="pre">20</span></em><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.max_line_height" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.max_line_width">
+<span class="sig-name descname"><span class="pre">max_line_width</span></span><em class="property"> <span class="pre">=</span> <span class="pre">40</span></em><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.max_line_width" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.process">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.process_shape_info">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">process_shape_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.process_shape_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.printing.VariableWithShapePrinter.process_variable_name">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">process_variable_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pstate</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">collections.abc.MutableMapping</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.printing.PrinterState</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.VariableWithShapePrinter.process_variable_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take a variable name from the available ones.</p>
+<p>This function also initializes the available names by removing
+all the manually specified names within the <cite>FunctionGraph</cite>
+being printed (if available). Doing so removes the potential for
+name collisions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.printing.latex_print_array">
+<span class="sig-prename descclassname"><span class="pre">aeppl.printing.</span></span><span class="sig-name descname"><span class="pre">latex_print_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.printing.latex_print_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-aeppl.transforms">
+<span id="aeppl-transforms-module"></span><h2>aeppl.transforms module<a class="headerlink" href="#module-aeppl.transforms" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.CircularTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">CircularTransform</span></span><a class="headerlink" href="#aeppl.transforms.CircularTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.transforms.RVTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.CircularTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.CircularTransform.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.CircularTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.CircularTransform.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.CircularTransform.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.CircularTransform.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.CircularTransform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'circular'</span></em><a class="headerlink" href="#aeppl.transforms.CircularTransform.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.DefaultTransformSentinel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">DefaultTransformSentinel</span></span><a class="headerlink" href="#aeppl.transforms.DefaultTransformSentinel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.DistributionMeta">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">DistributionMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clsdict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.DistributionMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.graph.utils.MetaType</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.IntervalTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">IntervalTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args_fn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.IntervalTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.transforms.RVTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.IntervalTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.IntervalTransform.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.IntervalTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.IntervalTransform.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.IntervalTransform.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.IntervalTransform.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.IntervalTransform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'interval'</span></em><a class="headerlink" href="#aeppl.transforms.IntervalTransform.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.LogOddsTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">LogOddsTransform</span></span><a class="headerlink" href="#aeppl.transforms.LogOddsTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.transforms.RVTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogOddsTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogOddsTransform.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogOddsTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogOddsTransform.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogOddsTransform.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogOddsTransform.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.LogOddsTransform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'logodds'</span></em><a class="headerlink" href="#aeppl.transforms.LogOddsTransform.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.LogTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">LogTransform</span></span><a class="headerlink" href="#aeppl.transforms.LogTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.transforms.RVTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogTransform.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogTransform.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogTransform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogTransform.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.LogTransform.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.LogTransform.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.LogTransform.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'log'</span></em><a class="headerlink" href="#aeppl.transforms.LogTransform.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.RVTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">RVTransform</span></span><a class="headerlink" href="#aeppl.transforms.RVTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.RVTransform.backward">
+<em class="property"><span class="pre">abstract</span> </em><span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.transforms.RVTransform.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.RVTransform.forward">
+<em class="property"><span class="pre">abstract</span> </em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.basic.Variable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.transforms.RVTransform.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.RVTransform.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.transforms.RVTransform.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.StickBreaking">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">StickBreaking</span></span><a class="headerlink" href="#aeppl.transforms.StickBreaking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">aeppl.transforms.RVTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.StickBreaking.backward">
+<span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.StickBreaking.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invert the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.StickBreaking.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.StickBreaking.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the transformation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.StickBreaking.log_jac_det">
+<span class="sig-name descname"><span class="pre">log_jac_det</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.StickBreaking.log_jac_det" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the log of the absolute value of the Jacobian determinant.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.StickBreaking.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'stickbreaking'</span></em><a class="headerlink" href="#aeppl.transforms.StickBreaking.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesMapping">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">TransformValuesMapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values_to_transforms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformValuesMapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.graph.features.Feature</span></code></p>
+<p>A <cite>Feature</cite> that maintains a map between value variables and their transforms.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesMapping.on_attach">
+<span class="sig-name descname"><span class="pre">on_attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fgraph</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformValuesMapping.on_attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called by <cite>FunctionGraph.attach_feature</cite>, the method that attaches the
+feature to the <cite>FunctionGraph</cite>. Since this is called after the
+<cite>FunctionGraph</cite> is initially populated, this is where you should run
+checks on the initial contents of the <cite>FunctionGraph</cite>.</p>
+<p>The on_attach method may raise the <cite>AlreadyThere</cite> exception to cancel
+the attach operation if it detects that another Feature instance
+implementing the same functionality is already attached to the
+<cite>FunctionGraph</cite>.</p>
+<p>The feature has great freedom in what it can do with the <cite>fgraph</cite>: it
+may, for example, add methods to it dynamically.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesOpt">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">TransformValuesOpt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values_to_transforms</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><span class="pre">aeppl.transforms.RVTransform</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#aeppl.transforms.DefaultTransformSentinel" title="aeppl.transforms.DefaultTransformSentinel"><span class="pre">aeppl.transforms.DefaultTransformSentinel</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformValuesOpt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.graph.opt.GlobalOptimizer</span></code></p>
+<p>Transforms value variables according to a map and/or per-<cite>RandomVariable</cite> defaults.</p>
+<dl class="simple">
+<dt>values_to_transforms</dt><dd><p>Mapping between value variables and their transformations.  Each
+value variable can be assigned one of <cite>RVTransform</cite>,
+<code class="docutils literal notranslate"><span class="pre">DEFAULT_TRANSFORM</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code>. If a transform is not specified
+for a specific value variable it will not be transformed.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesOpt.add_requirements">
+<span class="sig-name descname"><span class="pre">add_requirements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fgraph</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformValuesOpt.add_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add features to <cite>fgraph</cite> that are required to apply the optimization.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fgraph</span><span class="o">.</span><span class="n">attach_feature</span><span class="p">(</span><span class="n">History</span><span class="p">())</span>
+<span class="n">fgraph</span><span class="o">.</span><span class="n">attach_feature</span><span class="p">(</span><span class="n">MyFeature</span><span class="p">())</span>
+<span class="c1"># etc.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesOpt.apply">
+<span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fgraph</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.fg.FunctionGraph</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformValuesOpt.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the optimization to a <cite>FunctionGraph</cite>.</p>
+<p>It may use all the methods defined by the <cite>FunctionGraph</cite>. If the
+<cite>GlobalOptimizer</cite> needs to use a certain tool, such as an
+<cite>InstanceFinder</cite>, it can do so in its <cite>add_requirements</cite> method.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformValuesOpt.default_transform_opt">
+<span class="sig-name descname"><span class="pre">default_transform_opt</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;aesara.graph.opt.TopoOptimizer</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#aeppl.transforms.TransformValuesOpt.default_transform_opt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aeppl.transforms.TransformedRV">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">TransformedRV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndim_supp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndims_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.TransformedRV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">aesara.tensor.random.op.RandomVariable</span></code></p>
+<p>A base class for transformed <cite>RandomVariable</cite>s.</p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl class="simple">
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Total number of dimensions for a single draw of the random variable
+(e.g. a multivariate normal draw is 1D, so <code class="docutils literal notranslate"><span class="pre">ndim_supp</span> <span class="pre">=</span> <span class="pre">1</span></code>).</p>
+</dd>
+<dt>ndims_params: list of int</dt><dd><p>Number of dimensions for each distribution parameter when the
+parameters only specify a single drawn of the random variable
+(e.g. a multivariate normal’s mean is 1D and covariance is 2D, so
+<code class="docutils literal notranslate"><span class="pre">ndims_params</span> <span class="pre">=</span> <span class="pre">[1,</span> <span class="pre">2]</span></code>).</p>
+</dd>
+<dt>dtype: str (optional)</dt><dd><p>The dtype of the sampled output.  If the value <code class="docutils literal notranslate"><span class="pre">&quot;floatX&quot;</span></code> is
+given, then <code class="docutils literal notranslate"><span class="pre">dtype</span></code> is set to <code class="docutils literal notranslate"><span class="pre">aesara.config.floatX</span></code>.  If
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), the <cite>dtype</cite> keyword must be set when
+<cite>RandomVariable.make_node</cite> is called.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.transforms.create_default_transformed_rv_op">
+<span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">create_default_transformed_rv_op</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rv_op</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.graph.op.Op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#aeppl.transforms.RVTransform" title="aeppl.transforms.RVTransform"><span class="pre">aeppl.transforms.RVTransform</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_dict_extra</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#aeppl.transforms.TransformedRV" title="aeppl.transforms.TransformedRV"><span class="pre">aeppl.transforms.TransformedRV</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.transforms.create_default_transformed_rv_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new <cite>TransformedRV</cite> given a base <cite>RandomVariable</cite> <cite>Op</cite></p>
+<dl class="simple">
+<dt>rv_op</dt><dd><p>The <cite>RandomVariable</cite> for which we want to construct a <cite>TransformedRV</cite>.</p>
+</dd>
+<dt>transform</dt><dd><p>The <cite>RVTransform</cite> for <cite>rv_op</cite>.</p>
+</dd>
+<dt>default</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">False</span></code> do not make <cite>transform</cite> the default transform for <cite>rv_op</cite>.</p>
+</dd>
+<dt>cls_dict_extra</dt><dd><p>Additional class members to add to the constructed <cite>TransformedRV</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.transforms.transformed_logprob">
+<span class="sig-prename descclassname"><span class="pre">aeppl.transforms.</span></span><span class="sig-name descname"><span class="pre">transformed_logprob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.transforms.transformed_logprob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the log-likelihood graph for a <cite>TransformedRV</cite>.</p>
+<p>We assume that the value variable was back-transformed to be on the natural
+support of the respective random variable.</p>
+</dd></dl>
+
+</section>
+<section id="module-aeppl.utils">
+<span id="aeppl-utils-module"></span><h2>aeppl.utils module<a class="headerlink" href="#module-aeppl.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.change_rv_size">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">change_rv_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rv_var</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.graph.basic.Variable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.graph.basic.Variable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.graph.basic.Variable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expand</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">aesara.tensor.var.TensorVariable</span></span></span><a class="headerlink" href="#aeppl.utils.change_rv_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change or expand the size of a <cite>RandomVariable</cite>.</p>
+<dl class="simple">
+<dt>rv_var</dt><dd><p>The <cite>RandomVariable</cite> output.</p>
+</dd>
+<dt>new_size</dt><dd><p>The new size.</p>
+</dd>
+<dt>expand:</dt><dd><p>Expand the existing size by <cite>new_size</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.convert_indices">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">convert_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.utils.convert_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.extract_obs_data">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">extract_obs_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#aeppl.utils.extract_obs_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract data from observed symbolic variables.</p>
+<p>TypeError</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.extract_rv_and_value_vars">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">extract_rv_and_value_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">aesara.tensor.var.TensorVariable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.utils.extract_rv_and_value_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a random variable and its observations, value variable, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="simple">
+<dt>var</dt><dd><p>A variable corresponding to a <code class="docutils literal notranslate"><span class="pre">MeasurableVariable</span></code>.</p>
+</dd>
+</dl>
+<p>The first value in the tuple is the <code class="docutils literal notranslate"><span class="pre">MeasurableVariable</span></code> and the second is
+the observations variable or the measure/log-probability value variable.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.get_constant_value">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">get_constant_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.utils.get_constant_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use constant folding to get a constant value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.indices_from_subtensor">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">indices_from_subtensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aeppl.utils.indices_from_subtensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute a useable index tuple from the inputs of a <code class="docutils literal notranslate"><span class="pre">*Subtensor**</span></code> <code class="docutils literal notranslate"><span class="pre">Op</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.replace_rvs_in_graphs">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">replace_rvs_in_graphs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graphs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_replacements</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.utils.replace_rvs_in_graphs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace random variables in graphs.</p>
+<p>This will <em>not</em> recompute test values.</p>
+<dl class="simple">
+<dt>graphs</dt><dd><p>The graphs in which random variables are to be replaced.</p>
+</dd>
+</dl>
+<p>A <code class="docutils literal notranslate"><span class="pre">tuple</span></code> containing the transformed graphs and a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of the
+replacements that were made.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.rvs_to_value_vars">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">rvs_to_value_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graphs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_replacements</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.utils.rvs_to_value_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace random variables in graphs with their value variables.</p>
+<p>This will <em>not</em> recompute test values in the resulting graphs.</p>
+<dl class="simple">
+<dt>graphs</dt><dd><p>The graphs in which to perform the replacements.</p>
+</dd>
+<dt>initial_replacements</dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">dict</span></code> containing the initial replacements to be made.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aeppl.utils.walk_model">
+<span class="sig-prename descclassname"><span class="pre">aeppl.utils.</span></span><span class="sig-name descname"><span class="pre">walk_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">graphs:</span> <span class="pre">Iterable[aesara.tensor.var.TensorVariable],</span> <span class="pre">walk_past_rvs:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">stop_at_vars:</span> <span class="pre">Optional[Set[aesara.tensor.var.TensorVariable]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">expand_fn:</span> <span class="pre">Callable[[aesara.tensor.var.TensorVariable],</span> <span class="pre">List[aesara.tensor.var.TensorVariable]]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><span class="pre">aesara.tensor.var.TensorVariable</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aeppl.utils.walk_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walk model graphs and yield their nodes.</p>
+<p>By default, these walks will not go past <code class="docutils literal notranslate"><span class="pre">MeasurableVariable</span></code> nodes.</p>
+<dl class="simple">
+<dt>graphs</dt><dd><p>The graphs to walk.</p>
+</dd>
+<dt>walk_past_rvs</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the walk will not terminate at <a href="#id1"><span class="problematic" id="id2">``</span></a>MeasurableVariable``s.</p>
+</dd>
+<dt>stop_at_vars</dt><dd><p>A list of variables at which the walk will terminate.</p>
+</dd>
+<dt>expand_fn</dt><dd><p>A function that returns the next variable(s) to be traversed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-aeppl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-aeppl" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">AePPL</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Aesara Developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/aeppl.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
