@@ -3,6 +3,7 @@ from copy import copy
 from functools import singledispatch
 from typing import Callable, List
 
+from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.tensor.random.op import RandomVariable
@@ -82,3 +83,43 @@ def assign_custom_measurable_outputs(
     _get_measurable_outputs.register(new_op_type)(measurable_outputs_fn)
 
     return new_node
+
+
+class ValuedVariable(Op):
+    r"""Represents the association of a measurable variable and its value.
+
+    A `ValuedVariable` node represents the pair :math:`(Y, y)`, where
+    :math:`Y` is a random variable and :math:`y \sim Y`.
+
+    Log-probability (densities) are functions over these pairs, which makes
+    these nodes in a graph an intermediate form that serves to construct a
+    log-probability from a model graph.
+
+    This intermediate form can be used as the target for rewrites that
+    otherwise wouldn't make sense to apply to--say--a random variable node
+    directly.  An example is `BroadcastTo` lifting through `RandomVariable`\s.
+    """
+
+    default_output = 0
+    view_map = {0: [0]}
+
+    def make_node(self, rv, value):
+        # TODO: We assume the `Type` of `rv`, but that might not be the best
+        # approach
+        output = rv.type()
+        return Apply(self, [rv, value], [output])
+
+    def perform(self, node, inputs, out):
+        out[0][0] = inputs[1]
+
+    def grad(self, inputs, outputs):
+        return [
+            grad_undefined(self, k, inp, "No gradient defined for `ValuedVariable`")
+            for k, inp in enumerate(inputs)
+        ]
+
+    def infer_shape(self, fgraph, node, input_shapes):
+        return [input_shapes[0]]
+
+
+valued_variable = ValuedVariable()
