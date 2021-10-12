@@ -108,9 +108,28 @@ def incsubtensor_rv_replace(fgraph, node):
 
 @local_optimizer([BroadcastTo])
 def naive_bcast_rv_lift(fgraph, node):
-    """Lift a ``BroadcastTo`` through a ``RandomVariable`` ``Op``.
+    r"""Lift a `BroadcastTo` through a `RandomVariable` `Op`.
 
-    XXX: This implementation simply broadcasts the ``RandomVariable``'s
+    This can only be done under the assumption that the `BroadcastTo` is
+    redundant.  For example, the following are redundant `BroadcastTo`s:
+
+    .. code-block:: python
+
+        Y_1 = at.broadcast_to(at.random.normal(0, 1, size=10), (10,))
+        Y_2 = at.broadcast_to(at.random.normal(at.zeros((10,)), 1), (10,))
+        Y_3 = at.broadcast_to(at.random.normal(0, 1, size=10), (10, 1))
+
+    but the following is not:
+
+    .. code-block:: python
+
+        Y_4 = at.broadcast_to(at.random.normal(0, 1), (10,))
+
+
+    The problem with the latter is that the lifting would introduce new
+    variates.
+
+    XXX: This implementation simply broadcasts the `RandomVariable`'s
     parameters, which won't always work (e.g. multivariate distributions).
 
     TODO: Instead, it should use ``RandomVariable.ndim_supp``--and the like--to
