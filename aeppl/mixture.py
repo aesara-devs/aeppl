@@ -21,7 +21,12 @@ from aesara.tensor.var import TensorVariable
 
 from aeppl.abstract import MeasurableVariable, assign_custom_measurable_outputs
 from aeppl.logprob import _logprob, logprob
-from aeppl.opt import naive_bcast_rv_lift, rv_sinking_db, subtensor_ops
+from aeppl.opt import (
+    PreserveRVMappings,
+    naive_bcast_rv_lift,
+    rv_sinking_db,
+    subtensor_ops,
+)
 from aeppl.utils import get_constant_value
 
 
@@ -219,15 +224,15 @@ def get_stack_mixture_vars(
 
         join_axis = at.as_tensor(join_axis)
 
-    if not all(
-        rv.owner and isinstance(rv.owner.op, MeasurableVariable) for rv in mixture_rvs
-    ):
-        # Currently, all mixture components must be `MeasurableVariable` outputs
-        # TODO: Allow constants and make them Dirac-deltas
-        # raise NotImplementedError(
-        #     "All mixture components must be `MeasurableVariable` outputs"
-        # )
-        return None, join_axis
+    # if not all(
+    #     rv.owner and isinstance(rv.owner.op, MeasurableVariable) for rv in mixture_rvs
+    # ):
+    #     # Currently, all mixture components must be `MeasurableVariable` outputs
+    #     # TODO: Allow constants and make them Dirac-deltas
+    #     # raise NotImplementedError(
+    #     #     "All mixture components must be `MeasurableVariable` outputs"
+    #     # )
+    #     return None, join_axis
 
     return mixture_rvs, join_axis
 
@@ -243,7 +248,9 @@ def mixture_replace(fgraph, node):
     created for each ``i`` in ``enumerate(mixture_comps)``.
     """
 
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+    rv_map_feature: Optional[PreserveRVMappings] = getattr(
+        fgraph, "preserve_rv_mappings", None
+    )
 
     if rv_map_feature is None:
         return None  # pragma: no cover
@@ -257,6 +264,14 @@ def mixture_replace(fgraph, node):
 
     if mixture_res is None:
         return None  # pragma: no cover
+
+    all_components_measurable = True
+    for mixture_comp in mixture_res:
+        if not isinstance(mixture_comp.owner.op, MeasurableVariable):
+            rv_map_feature.flag_upstream_value(mixture_comp)
+            all_components_measurable = False
+    if not all_components_measurable:
+        return None
 
     mixing_indices = node.inputs[1:]
 

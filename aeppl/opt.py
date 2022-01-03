@@ -31,6 +31,9 @@ inc_subtensor_ops = (IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1)
 subtensor_ops = (AdvancedSubtensor, AdvancedSubtensor1, Subtensor)
 
 
+UPSTREAM_VALUE = object()
+
+
 class PreserveRVMappings(Feature):
     r"""Keeps track of random variables and their respective value variables during
     graph rewrites in `rv_values`
@@ -63,6 +66,9 @@ class PreserveRVMappings(Feature):
             )
 
         fgraph.preserve_rv_mappings = self
+
+    def flag_upstream_value(self, var):
+        self.rv_values[var] = UPSTREAM_VALUE
 
     def update_rv_maps(
         self,
@@ -101,7 +107,7 @@ class PreserveRVMappings(Feature):
         variable associated with it and map it to the new node.
         """
         r_value_var = self.rv_values.pop(r, None)
-        if r_value_var is not None:
+        if r_value_var not in (None, UPSTREAM_VALUE):
             self.rv_values[new_r] = r_value_var
 
 
