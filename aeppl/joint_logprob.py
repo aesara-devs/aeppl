@@ -1,21 +1,16 @@
-import warnings
-from collections import deque
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import aesara.tensor as at
-from aesara import config
 from aesara.graph.basic import graph_inputs, io_toposort
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import compute_test_value
 from aesara.graph.opt import GlobalOptimizer, LocalOptimizer
 from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.var import TensorVariable
 
-from aeppl.abstract import get_measurable_outputs
+from aeppl.abstract import ValuedVariable, get_measurable_outputs, valued_variable
 from aeppl.logprob import _logprob
-from aeppl.opt import PreserveRVMappings, logprob_rewrites_db
-from aeppl.utils import rvs_to_value_vars
+from aeppl.opt import logprob_rewrites_db
 
 
 def factorized_joint_logprob(
@@ -79,19 +74,54 @@ def factorized_joint_logprob(
     from the respective `RandomVariable`.
 
     """
+    # We're going to create a `FunctionGraph` that effectively represents the
+    # joint log-probability of all the random variables assigned values in
+    # `rv_values`.
+    # The `FunctionGraph`'s outputs will be `ValuedVariable`s.  This serves to
+    # associate a random variable with its value and facilitate
+    # rewrites/transformations of both simultaneously.
+    # The `FunctionGraph` will be transformed by rewrites so that
+    # log-probabilities can be assigned to/derived for its outputs.
+
+    # We clone the random variables that we'll use as `FunctionGraph` outputs
+    # so that they're distinct nodes in the graph.  This allows us to replace
+    # all instances of the original random variables with their value
+    # variables, while leaving the output clones untouched.
+    rv_value_clones = {}
+    for rv, val in rv_values.items():
+        rv_node_clone = rv.owner.clone()
+        rv_clone = rv_node_clone.outputs[rv.owner.outputs.index(rv)]
+        rv_value_clones[rv_clone] = val
+
+    # We topologically order the `FunctionGraph` outputs just in case
+    # we want to perform operations on them in order (e.g. compute test values).
+    # TODO: It's not clear that this is actually needed.
+    outputs = []
+    rv_vars = list(rv_value_clones.keys())
+    sorted_rv_vars: List[TensorVariable] = sum(
+        [
+            [o for o in node.outputs if o in rv_vars]
+            for node in io_toposort(graph_inputs(rv_vars), rv_vars)
+        ],
+        [],
+    )
+    measured_outputs = [
+        valued_variable(rv, rv_value_clones[rv]) for rv in sorted_rv_vars
+    ]
+
     # Since we're going to clone the entire graph, we need to keep a map from
     # the old nodes to the new ones; otherwise, we won't be able to use
     # `rv_values`.
     # We start the `dict` with mappings from the value variables to themselves,
     # to prevent them from being cloned.
-    memo = {v: v for v in rv_values.values()}
+    memo = {v: v for v in rv_value_clones.values()}
 
     # We add `ShapeFeature` because it will get rid of references to the old
     # `RandomVariable`s that have been lifted; otherwise, it will be difficult
     # to give good warnings when an unaccounted for `RandomVariable` is
     # encountered
     fgraph = FunctionGraph(
-        outputs=list(rv_values.keys()),
+        outputs=measured_outputs,
         clone=True,
         memo=memo,
         copy_orphans=False,
@@ -100,118 +130,54 @@ def factorized_joint_logprob(
     )
 
     # Update `rv_values` so that it uses the new cloned variables
-    rv_values = {memo[k]: v for k, v in rv_values.items()}
+    rv_value_clones = {memo[k]: v for k, v in rv_value_clones.items()}
 
-    # This `Feature` preserves the relationships between the original
-    # random variables (i.e. keys in `rv_values`) and the new ones
-    # produced when `Op`s are lifted through them.
-    rv_remapper = PreserveRVMappings(rv_values)
-
-    fgraph.attach_feature(rv_remapper)
+    # Replace valued non-output variables with their values
+    fgraph.replace_all(
+        [(memo[rv], val) for rv, val in rv_values.items() if rv in memo],
+        import_missing=True,
+    )
 
     logprob_rewrites_db.query(OptimizationQuery(include=["basic"])).optimize(fgraph)
 
     if extra_rewrites is not None:
         extra_rewrites.optimize(fgraph)
 
-    # This is the updated random-to-value-vars map with the lifted/rewritten
-    # variables.  The rewrites are supposed to produce new
-    # `MeasurableVariable`s that are amenable to `_logprob`.
-    updated_rv_values = rv_remapper.rv_values
-
-    # Some rewrites also transform the original value variables. This is the
-    # updated map from the new value variables to the original ones, which
-    # we want to use as the keys in the final dictionary output
-    original_values = rv_remapper.original_values
-
-    # When a `_logprob` has been produced for a `MeasurableVariable` node, all
-    # other references to it need to be replaced with its value-variable all
-    # throughout the `_logprob`-produced graphs.  The following `dict`
-    # cumulatively maintains remappings for all the variables/nodes that needed
-    # to be recreated after replacing `MeasurableVariable`s with their
-    # value-variables.  Since these replacements work in topological order, all
-    # the necessary value-variable replacements should be present for each
-    # node.
-    replacements = updated_rv_values.copy()
-
-    # To avoid cloning the value variables, we map them to themselves in the
-    # `replacements` `dict` (i.e. entries already existing in `replacements`
-    # aren't cloned)
-    replacements.update({v: v for v in rv_values.values()})
-
-    # Walk the graph from its inputs to its outputs and construct the
-    # log-probability
-    q = deque(fgraph.toposort())
-
     logprob_vars = {}
 
-    while q:
-        node = q.popleft()
+    for out, orig_rv in zip(fgraph.outputs, sorted_rv_vars):
+        node = out.owner
 
-        outputs = get_measurable_outputs(node.op, node)
+        assert isinstance(node.op, ValuedVariable)
+
+        rv_var, val_var = node.inputs
+
+        rv_node = rv_var.owner
+        outputs = get_measurable_outputs(rv_node.op, rv_node)
 
         if not outputs:
-            continue
+            raise ValueError(f"Couldn't derive a log-probability for {out}")
 
-        if warn_missing_rvs and any(
-            o not in updated_rv_values
-            for o in outputs
-            if not getattr(o.tag, "ignore_logprob", False)
-        ):
-            warnings.warn(
-                "Found a random variable that was neither among the observations "
-                f"nor the conditioned variables: {node.outputs}"
-            )
-            continue
-
-        q_value_vars = [
-            replacements[q_rv_var]
-            for q_rv_var in outputs
-            if not getattr(q_rv_var.tag, "ignore_logprob", False)
-        ]
-
-        if not q_value_vars:
-            continue
-
-        # Replace `RandomVariable`s in the inputs with value variables.
-        # Also, store the results in the `replacements` map for the nodes
-        # that follow.
-        remapped_vars, _ = rvs_to_value_vars(
-            q_value_vars + list(node.inputs),
-            initial_replacements=replacements,
-        )
-        q_value_vars = remapped_vars[: len(q_value_vars)]
-        q_rv_inputs = remapped_vars[len(q_value_vars) :]
-
-        q_logprob_vars = _logprob(
-            node.op,
-            q_value_vars,
-            *q_rv_inputs,
+        rv_logprob = _logprob(
+            rv_node.op,
+            [val_var],
+            *rv_node.inputs,
             **kwargs,
         )
 
-        if not isinstance(q_logprob_vars, (list, tuple)):
-            q_logprob_vars = [q_logprob_vars]
+        if isinstance(rv_logprob, (tuple, list)):
+            (rv_logprob,) = rv_logprob
 
-        for q_value_var, q_logprob_var in zip(q_value_vars, q_logprob_vars):
+        if orig_rv.name:
+            rv_logprob.name = f"{orig_rv.name}_logprob"
 
-            q_value_var = original_values[q_value_var]
+        logprob_vars[orig_rv] = rv_logprob
 
-            if q_value_var.name:
-                q_logprob_var.name = f"{q_value_var.name}_logprob"
-
-            if q_value_var in logprob_vars:
-                raise ValueError(
-                    f"More than one logprob factor was assigned to the value var {q_value_var}"
-                )
-
-            logprob_vars[q_value_var] = q_logprob_var
-
-        # Recompute test values for the changes introduced by the
-        # replacements above.
-        if config.compute_test_value != "off":
-            for node in io_toposort(graph_inputs(q_logprob_vars), q_logprob_vars):
-                compute_test_value(node)
+        # # Recompute test values for the changes introduced by the
+        # # replacements above.
+        # if config.compute_test_value != "off":
+        #     for node in io_toposort(graph_inputs([rv_logprob]), q_logprob_vars):
+        #         compute_test_value(node)
 
     return logprob_vars
 

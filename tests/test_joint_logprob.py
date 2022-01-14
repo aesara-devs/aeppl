@@ -48,8 +48,10 @@ def test_joint_logprob_basic():
         [ll_Y],
         initial_replacements={sigma: sigma_value_var},
     )
-    total_ll_exp = logprob(sigma, sigma_value_var) + ll_Y
+    total_ll_exp = ll_Y + logprob(sigma, sigma_value_var)
 
+    # TODO: This doesn't care about commutativity, so it can fail if
+    # `total_ll_exp` simply doesn't match the addition order
     assert equal_computations([total_ll], [total_ll_exp])
 
     # Now, make sure we can compute a joint log-probability for a hierarchical
@@ -85,6 +87,8 @@ def test_joint_logprob_multi_obs():
     logp = joint_logprob({a: a_val, b: b_val}, sum=False)
     logp_exp = logprob(a, a_val) + logprob(b, b_val)
 
+    # TODO: This doesn't care about commutativity, so it can fail if
+    # `total_ll_exp` simply doesn't match the addition order
     assert equal_computations([logp], [logp_exp])
 
     x = at.random.normal(0, 1)
@@ -96,6 +100,8 @@ def test_joint_logprob_multi_obs():
     logp = joint_logprob({x: x_val, y: y_val})
     exp_logp = joint_logprob({x: x_val, y: y_val})
 
+    # TODO: This doesn't care about commutativity, so it can fail if
+    # `total_ll_exp` simply doesn't match the addition order
     assert equal_computations([logp], [exp_logp])
 
 
@@ -268,6 +274,8 @@ def test_ignore_logprob():
     y_rv_2 = at.random.normal(beta * x, 1, name="y")
     logp_exp = joint_logprob({y_rv_2: y})
 
+    # TODO: This doesn't care about commutativity, so it can fail if
+    # `total_ll_exp` simply doesn't match the addition order
     assert equal_computations([logp], [logp_exp])
 
 

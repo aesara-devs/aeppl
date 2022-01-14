@@ -26,7 +26,7 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.var import TensorVariable
 
-from aeppl.abstract import MeasurableVariable
+from aeppl.abstract import MeasurableVariable, ValuedVariable, valued_variable
 from aeppl.dists import DiracDelta
 from aeppl.utils import indices_from_subtensor
 
@@ -192,11 +192,8 @@ def incsubtensor_rv_replace(fgraph, node):
 
 
 @local_optimizer([BroadcastTo])
-def naive_bcast_rv_lift(fgraph, node):
-    """Lift a ``BroadcastTo`` through a ``RandomVariable`` ``Op``.
-
-    XXX: This implementation simply broadcasts the ``RandomVariable``'s
-    parameters, which won't always work (e.g. multivariate distributions).
+def valued_var_bcast_lift(fgraph, node):
+    r"""Lift a `BroadcastTo` through a `ValuedVariable` of a `RandomVariable`.
 
     TODO: Instead, it should use ``RandomVariable.ndim_supp``--and the like--to
     determine which dimensions of each parameter need to be broadcasted.
@@ -204,25 +201,31 @@ def naive_bcast_rv_lift(fgraph, node):
     currently does.
     """
 
+    valued_var = node.inputs[0]
+
     if not (
         isinstance(node.op, BroadcastTo)
-        and node.inputs[0].owner
-        and isinstance(node.inputs[0].owner.op, RandomVariable)
+        and valued_var.owner
+        and isinstance(valued_var.owner.op, ValuedVariable)
     ):
         return None  # pragma: no cover
 
     bcast_shape = node.inputs[1:]
 
-    rv_var = node.inputs[0]
-    rv_node = rv_var.owner
-
-    if hasattr(fgraph, "dont_touch_vars") and rv_var in fgraph.dont_touch_vars:
-        return None  # pragma: no cover
-
     if not bcast_shape:
         # The `BroadcastTo` is broadcasting a scalar to a scalar (i.e. doing nothing)
-        assert rv_var.ndim == 0
-        return [rv_var]
+        assert valued_var.ndim == 0
+        return [valued_var]
+
+    rv_var = valued_var.owner.inputs[0]
+    rv_node = rv_var.owner
+
+    if not (rv_var.owner and isinstance(rv_var.owner.op, RandomVariable)):
+        return None
+
+    # TODO: Remove this whole `dont_touch_vars` thing
+    if hasattr(fgraph, "dont_touch_vars") and rv_var in fgraph.dont_touch_vars:
+        return None  # pragma: no cover
 
     size_lift_res = local_rv_size_lift.transform(fgraph, rv_node)
     if size_lift_res is None:
@@ -242,22 +245,52 @@ def naive_bcast_rv_lift(fgraph, node):
         )
         for param in dist_params
     ]
+
+    # TODO: Replace `lifted_node.op` with a clone type that doesn't draw samples.
+    # Also, remove the `rng` object
     bcasted_node = lifted_node.op.make_node(rng, size, dtype, *new_dist_params)
 
+    # It's possible that the broadcasting pattern/shape inference wasn't accurate
+    # enough, so we need to set it manually
+    # TODO: This should be removed when Aesara has better static shape
+    # information handling
+    res = bcasted_node.outputs[1]
+    old_out = node.outputs[0]
+
+    if res.broadcastable != old_out.broadcastable:
+        res = at.patternbroadcast(res, old_out.broadcastable)
+
     if aesara.config.compute_test_value != "off":
-        compute_test_value(bcasted_node)
+        compute_test_value(res.owner)
 
-    return [bcasted_node.outputs[1]]
-
-
-logprob_rewrites_db = SequenceDB()
-logprob_rewrites_db.name = "logprob_rewrites_db"
-logprob_rewrites_db.register(
-    "pre-canonicalize", optdb.query("+canonicalize"), -10, "basic"
-)
+    return [res]
 
 
-class RVSinkingDB(EquilibriumDB):
+@local_optimizer(subtensor_ops)
+def valued_variable_subtensor_lift(fgraph, node):
+    r"""Lift `*Subtensor` `Op`\s through `ValuedVariable`\s."""
+
+    if not isinstance(node.op, subtensor_ops):
+        return None
+
+    indexed_var = node.inputs[0]
+
+    if not (indexed_var.owner and isinstance(indexed_var.owner.op, ValuedVariable)):
+        return None
+
+    indices = node.inputs[1:]
+
+    variable_inp, value_inp = indexed_var.owner.inputs
+
+    var_subtens_inp = node.clone_new_inputs([variable_inp] + indices)
+    value_subtens_inp = node.clone_new_inputs([value_inp] + indices)
+
+    new_vv = valued_variable(var_subtens_inp, value_subtens_inp)
+
+    return [new_vv]
+
+
+class NoCallbackEquilibriumDB(EquilibriumDB):
     r"""This `EquilibriumDB` doesn't hide its exceptions.
 
     By setting `failure_callback` to ``None`` in the `EquilibriumOptimizer`\s
@@ -271,13 +304,33 @@ class RVSinkingDB(EquilibriumDB):
         return res
 
 
+class RVSinkingDB(NoCallbackEquilibriumDB):
+    r"""A DB with optimizations that pertain to `RandomVariable`s"""
+
+
 rv_sinking_db = RVSinkingDB()
+
 rv_sinking_db.name = "rv_sinking_db"
 rv_sinking_db.register("dimshuffle_lift", local_dimshuffle_rv_lift, -5, "basic")
 rv_sinking_db.register("subtensor_lift", local_subtensor_rv_lift, -5, "basic")
-rv_sinking_db.register("broadcast_to_lift", naive_bcast_rv_lift, -5, "basic")
+rv_sinking_db.register("broadcast_to_lift", valued_var_bcast_lift, -5, "basic")
 rv_sinking_db.register("incsubtensor_lift", incsubtensor_rv_replace, -5, "basic")
 
+
+class ValueMapsDB(NoCallbackEquilibriumDB):
+    r"""A DB with optimizations that pertain to `ValuedVariable`\s"""
+
+
+value_maps_db = ValueMapsDB()
+value_maps_db.name = "value_maps_db"
+value_maps_db.register("subtensor_lift", valued_variable_subtensor_lift, -5, "basic")
+
+logprob_rewrites_db = SequenceDB()
+logprob_rewrites_db.name = "logprob_rewrites_db"
+logprob_rewrites_db.register(
+    "pre-canonicalize", optdb.query("+canonicalize"), -10, "basic"
+)
+logprob_rewrites_db.register("value_maps", value_maps_db, -20, "basic")
 logprob_rewrites_db.register("sinking", rv_sinking_db, -10, "basic")
 logprob_rewrites_db.register(
     "post-canonicalize", optdb.query("+canonicalize"), 10, "basic"
