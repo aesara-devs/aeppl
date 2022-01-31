@@ -1,17 +1,20 @@
 import aesara
 import aesara.tensor as at
+import numpy as np
+import scipy.stats as st
 from aesara.graph.opt import in2out
 from aesara.graph.opt_utils import optimize_graph
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.extra_ops import BroadcastTo
 from aesara.tensor.subtensor import Subtensor
 
+from aeppl import factorized_joint_logprob
 from aeppl.dists import DiracDelta, dirac_delta
 from aeppl.opt import local_lift_DiracDelta, naive_bcast_rv_lift
 
 
 def test_naive_bcast_rv_lift():
-    r"""Make sure `test_naive_bcast_rv_lift` can handle useless scalar `BroadcastTo`\s."""
+    r"""Make sure `naive_bcast_rv_lift` can handle useless scalar `BroadcastTo`\s."""
     X_rv = at.random.normal()
     Z_at = BroadcastTo()(X_rv, ())
 
@@ -20,6 +23,39 @@ def test_naive_bcast_rv_lift():
 
     res = optimize_graph(Z_at, custom_opt=in2out(naive_bcast_rv_lift), clone=False)
     assert res is X_rv
+
+
+def test_naive_bcast_rv_lift_valued_var():
+    r"""Check that `naive_bcast_rv_lift` handles valued variables correctly."""
+
+    x_rv = at.random.normal(name="x")
+
+    mu = at.broadcast_to(x_rv, (2,))
+    y_rv = at.random.normal(mu, name="y")
+
+    x_vv = x_rv.clone()
+    y_vv = y_rv.clone()
+    logp_map = factorized_joint_logprob({x_rv: x_vv, y_rv: y_vv})
+
+    assert x_vv in logp_map
+    assert y_vv in logp_map
+    y_val = np.array([0, 0])
+    assert np.allclose(
+        logp_map[y_vv].eval({x_vv: 0, y_vv: y_val}), st.norm(0).logpdf(y_val)
+    )
+
+    # Lifting should also work when `BroadcastTo`s are directly assigned value
+    # variables
+    z_rv = at.broadcast_to(x_rv, (2, 2))
+    z_rv.name = "Z"
+    z_vv = z_rv.clone()
+    z_vv.name = "z"
+
+    logp_map = factorized_joint_logprob({x_rv: x_vv, z_rv: z_vv})
+    assert x_vv in logp_map
+    assert z_vv in logp_map
+    z_val = np.array([[0, 0], [0, 0]])
+    assert np.allclose(logp_map[z_vv].eval({z_vv: z_val}), st.norm(0).logpdf(z_val))
 
 
 def test_local_lift_DiracDelta():

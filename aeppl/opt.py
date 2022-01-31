@@ -244,10 +244,20 @@ def naive_bcast_rv_lift(fgraph, node):
     ]
     bcasted_node = lifted_node.op.make_node(rng, size, dtype, *new_dist_params)
 
+    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+
+    new_bcast_out = bcasted_node.outputs[1]
+
+    if rv_map_feature is not None and rv_var in rv_map_feature.rv_values:
+        val_var = rv_map_feature.rv_values[rv_var]
+        new_val_var = at.broadcast_to(val_var, tuple(bcast_shape))
+        rv_map_feature.rv_values[new_bcast_out] = new_val_var
+        rv_map_feature.original_values[new_val_var] = new_val_var
+
     if aesara.config.compute_test_value != "off":
         compute_test_value(bcasted_node)
 
-    return [bcasted_node.outputs[1]]
+    return [new_bcast_out]
 
 
 logprob_rewrites_db = SequenceDB()
