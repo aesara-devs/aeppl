@@ -68,6 +68,14 @@ def logcdf(rv_var, rv_value, **kwargs):
     return logcdf
 
 
+def icdf(rv, value, **kwargs):
+    """Create a graph for the icdf of a ``RandomVariable``."""
+    rv_icdf = _icdf(rv.owner.op, value, *rv.owner.inputs, **kwargs)
+    if rv.name:
+        rv_icdf.name = f"{rv.name}_icdf"
+    return rv_icdf
+
+
 @singledispatch
 def _logprob(
     op: Op,
@@ -99,6 +107,22 @@ def _logcdf(
     for a ``RandomVariable``, register a new function on this dispatcher.
     """
     raise NotImplementedError(f"Logcdf method not implemented for {op}")
+
+
+@singledispatch
+def _icdf(
+    op: Op,
+    value: TensorVariable,
+    *inputs: TensorVariable,
+    **kwargs,
+):
+    """Create a graph for the icdf of a ``RandomVariable``.
+
+    This function dispatches on the type of ``op``, which should be a subclass
+    of ``RandomVariable``.  If you want to implement new icdf graphs
+    for a ``RandomVariable``, register a new function on this dispatcher.
+    """
+    raise NotImplementedError(f"icdf not implemented for {op}")
 
 
 @_logprob.register(arb.UniformRV)
