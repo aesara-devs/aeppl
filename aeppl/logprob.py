@@ -45,6 +45,12 @@ def xlogy0(m, x):
     return at.switch(at.eq(x, 0), at.switch(at.eq(m, 0), 0.0, -np.inf), m * at.log(x))
 
 
+def logdiffexp(a, b):
+    """log(exp(a) - exp(b))"""
+    # TODO: This should be a basic Aesara stabilization
+    return a + at.log1mexp(b - a)
+
+
 def logprob(rv_var, *rv_values, **kwargs):
     """Create a graph for the log-probability of a ``RandomVariable``."""
     logprob = _logprob(rv_var.owner.op, rv_values, *rv_var.owner.inputs, **kwargs)
