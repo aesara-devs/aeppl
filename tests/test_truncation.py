@@ -233,10 +233,10 @@ def _icdf_not_implemented(*args, **kwargs):
 def test_truncation_specialized_op():
     x = at.random.uniform(0, 10, name="x", size=100)
 
-    rng = aesara.shared(np.random.RandomState())
-    xt, _ = truncate(x, lower=5, upper=15, rng=rng)
+    srng = at.random.RandomStream()
+    xt, _ = truncate(x, lower=5, upper=15, srng=srng)
     assert isinstance(xt.owner.op, UniformRV)
-    assert xt.owner.inputs[0] is rng
+    assert xt.owner.inputs[0] is srng.updates()[0][0]
 
     lower_upper = at.stack(xt.owner.inputs[3:])
     assert np.all(lower_upper.eval() == [5, 10])
@@ -250,10 +250,10 @@ def test_truncation_continuous_random(op_type, lower, upper):
     normal_op = icdf_normal if op_type == "icdf" else rejection_normal
     x = normal_op(loc, scale, name="x", size=100)
 
-    rng = aesara.shared(np.random.RandomState())
-    xt, xt_update = truncate(x, lower=lower, upper=upper, rng=rng)
+    srng = at.random.RandomStream()
+    xt, xt_update = truncate(x, lower=lower, upper=upper, srng=srng)
     assert isinstance(xt.owner.op, TruncatedRV)
-    assert xt.owner.inputs[-1] is rng
+    assert xt.owner.inputs[-1] is srng.updates()[1 if op_type == "icdf" else 2][0]
     assert xt.type == x.type
 
     # Check that original op can be used on its own
@@ -275,7 +275,7 @@ def test_truncation_continuous_random(op_type, lower, upper):
     assert scipy.stats.cramervonmises(xt_draws.ravel(), ref_xt.cdf).pvalue > 0.001
 
     # Test max_n_steps
-    xt, xt_update = truncate(x, lower=lower, upper=upper, max_n_steps=1)
+    xt, xt_update = truncate(x, lower=lower, upper=upper, max_n_steps=2)
     xt_fn = aesara.function([], xt, updates=xt_update)
     if op_type == "icdf":
         xt_draws = xt_fn()
