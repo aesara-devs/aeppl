@@ -709,3 +709,20 @@ def test_invalid_broadcasted_transform_rv_fails():
     logp = joint_logprob({y_rv: y_vv})
     logp.eval({y_vv: [0, 0, 0, 0], loc: [0, 0, 0, 0]})
     assert False, "Should have failed before"
+
+
+@pytest.mark.parametrize("numerator", (1.0, 2.0))
+def test_reciprocal_rv_transform(numerator):
+    shape = 3
+    scale = 5
+    x_rv = numerator / at.random.gamma(shape, scale)
+    x_rv.name = "x"
+
+    x_vv = x_rv.clone()
+    x_logp_fn = aesara.function([x_vv], joint_logprob({x_rv: x_vv}))
+
+    x_test_val = 1.5
+    assert np.isclose(
+        x_logp_fn(x_test_val),
+        sp.stats.invgamma(shape, scale=scale * numerator).logpdf(x_test_val),
+    )
