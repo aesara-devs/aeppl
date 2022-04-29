@@ -4,7 +4,10 @@ import aesara
 from aesara import tensor as at
 from aesara.graph.op import compute_test_value
 from aesara.graph.opt import local_optimizer
+from aesara.scalar import TrueDiv
 from aesara.tensor.basic import Join, MakeVector
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import BroadcastTo
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.random.opt import local_dimshuffle_rv_lift, local_rv_size_lift
@@ -198,6 +201,51 @@ measurable_ir_rewrites_db.register(
     "find_measurable_stacks",
     find_measurable_stacks,
     0,
+    "basic",
+    "tensor",
+)
+
+
+@local_optimizer([Elemwise])
+def measurable_div_to_reciprocal_product(fgraph, node):
+    r"""Convert divisions involving `MeasurableVariable`\s to products with their reciprocals."""
+    if isinstance(node.op.scalar_op, TrueDiv):
+        measurable_vars = [
+            var
+            for var in node.inputs
+            if (var.owner and isinstance(var.owner.op, MeasurableVariable))
+        ]
+        if not measurable_vars:
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if there is one unvalued MeasurableVariable involved
+        if all(
+            measurable_var in rv_map_feature.rv_values
+            for measurable_var in measurable_vars
+        ):
+            return None
+
+        numerator, denominator = node.inputs
+
+        # Check if numerator is 1
+        try:
+            if at.get_scalar_constant_value(numerator) == 1:
+                return [at.reciprocal(denominator)]
+        except NotScalarConstantError:
+            pass
+        return [at.mul(numerator, at.reciprocal(denominator))]
+
+
+measurable_ir_rewrites_db.register(
+    "measurable_div_to_reciprocal_product",
+    measurable_div_to_reciprocal_product,
+    -1,
     "basic",
     "tensor",
 )
