@@ -4,7 +4,7 @@ import aesara
 from aesara import tensor as at
 from aesara.graph.op import compute_test_value
 from aesara.graph.opt import local_optimizer
-from aesara.scalar import TrueDiv
+from aesara.scalar import Neg, Sub, TrueDiv
 from aesara.tensor.basic import Join, MakeVector
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -242,10 +242,76 @@ def measurable_div_to_reciprocal_product(fgraph, node):
         return [at.mul(numerator, at.reciprocal(denominator))]
 
 
+@local_optimizer([Elemwise])
+def measurable_neg_to_product(fgraph, node):
+    r"""Convert negations of `MeasurableVariable`\s to products with `-1`."""
+    if isinstance(node.op.scalar_op, Neg):
+        inp = node.inputs[0]
+        if not (inp.owner and isinstance(inp.owner.op, MeasurableVariable)):
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if the variable is unvalued
+        if inp in rv_map_feature.rv_values:
+            return None
+
+        return [at.mul(inp, -1.0)]
+
+
+@local_optimizer([Elemwise])
+def measurable_sub_to_neg(fgraph, node):
+    r"""Convert subtraction involving `MeasurableVariable`\s to additions with `neg`."""
+    if isinstance(node.op.scalar_op, Sub):
+        measurable_vars = [
+            var
+            for var in node.inputs
+            if (var.owner and isinstance(var.owner.op, MeasurableVariable))
+        ]
+        if not measurable_vars:
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if there is one unvalued MeasurableVariable involved
+        if all(
+            measurable_var in rv_map_feature.rv_values
+            for measurable_var in measurable_vars
+        ):
+            return None
+
+        minuend, subtrahend = node.inputs
+        return [at.add(minuend, at.neg(subtrahend))]
+
+
 measurable_ir_rewrites_db.register(
     "measurable_div_to_reciprocal_product",
     measurable_div_to_reciprocal_product,
     -1,
+    "basic",
+    "tensor",
+)
+
+measurable_ir_rewrites_db.register(
+    "measurable_neg_to_product",
+    measurable_neg_to_product,
+    -5,
+    "basic",
+    "tensor",
+)
+
+measurable_ir_rewrites_db.register(
+    "measurable_sub_to_neg",
+    measurable_sub_to_neg,
+    -5,
     "basic",
     "tensor",
 )
