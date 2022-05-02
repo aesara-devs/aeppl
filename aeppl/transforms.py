@@ -10,7 +10,7 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
-from aesara.scalar import Add, Exp, Log, Mul, Reciprocal, TrueDiv
+from aesara.scalar import Add, Exp, Log, Mul, Neg, Reciprocal, Sub, TrueDiv
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.rewriting.basic import (
@@ -293,6 +293,56 @@ def measurable_div_to_reciprocal_product(fgraph, node):
 
 
 @node_rewriter([Elemwise])
+def measurable_neg_to_product(fgraph, node):
+    """Convert negation of `MeasurableVariable`s to product with `-1`."""
+    if isinstance(node.op.scalar_op, Neg):
+        inp = node.inputs[0]
+        if not (inp.owner and isinstance(inp.owner.op, MeasurableVariable)):
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if the variable is unvalued
+        if inp in rv_map_feature.rv_values:
+            return None  # pragma: no cover
+
+        return [at.mul(inp, -1.0)]
+
+
+@node_rewriter([Elemwise])
+def measurable_sub_to_neg(fgraph, node):
+    """Convert subtraction involving `MeasurableVariable`s to addition with neg"""
+    if isinstance(node.op.scalar_op, Sub):
+        measurable_vars = [
+            var
+            for var in node.inputs
+            if (var.owner and isinstance(var.owner.op, MeasurableVariable))
+        ]
+        if not measurable_vars:
+            return None  # pragma: no cover
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if there is one unvalued MeasurableVariable involved
+        if all(
+            measurable_var in rv_map_feature.rv_values
+            for measurable_var in measurable_vars
+        ):
+            return None  # pragma: no cover
+
+        minuend, subtrahend = node.inputs
+        return [at.add(minuend, at.neg(subtrahend))]
+
+
+@node_rewriter([Elemwise])
 def find_measurable_transforms(
     fgraph: FunctionGraph, node: Node
 ) -> Optional[List[Node]]:
@@ -383,11 +433,26 @@ def find_measurable_transforms(
 measurable_ir_rewrites_db.register(
     "measurable_div_to_reciprocal_product",
     measurable_div_to_reciprocal_product,
-    -1,
+    -5,
     "basic",
     "transform",
 )
 
+measurable_ir_rewrites_db.register(
+    "measurable_neg_to_product",
+    measurable_neg_to_product,
+    -5,
+    "basic",
+    "transform",
+)
+
+measurable_ir_rewrites_db.register(
+    "measurable_sub_to_neg",
+    measurable_sub_to_neg,
+    -5,
+    "basic",
+    "transform",
+)
 
 measurable_ir_rewrites_db.register(
     "find_measurable_transforms",
