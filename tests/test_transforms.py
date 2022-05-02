@@ -619,17 +619,22 @@ def test_loc_transform_rv(rv_size, loc_type):
 
 
 @pytest.mark.parametrize(
-    "rv_size, scale_type",
+    "rv_size, scale_type, product",
     [
-        (None, at.scalar),
-        (1, at.TensorType("floatX", (True,))),
-        ((2, 3), at.matrix),
+        (None, at.scalar, True),
+        (1, at.TensorType("floatX", (True,)), True),
+        ((2, 3), at.matrix, False),
     ],
 )
-def test_scale_transform_rv(rv_size, scale_type):
+def test_scale_transform_rv(rv_size, scale_type, product):
 
     scale = scale_type("scale")
-    y_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
+    if product:
+        y_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
+    else:
+        y_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") / at.reciprocal(
+            scale
+        )
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
