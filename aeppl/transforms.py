@@ -10,7 +10,7 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
-from aesara.scalar import Add, Exp, Log, Mul
+from aesara.scalar import Add, Exp, Log, Mul, Reciprocal
 from aesara.tensor.basic_opt import (
     register_specialize,
     register_stabilize,
@@ -261,7 +261,7 @@ def find_measurable_transforms(
 ) -> Optional[List[Node]]:
     """Find measurable transformations from Elemwise operators."""
     scalar_op = node.op.scalar_op
-    if not isinstance(scalar_op, (Exp, Log, Add, Mul)):
+    if not isinstance(scalar_op, (Exp, Log, Reciprocal, Add, Mul)):
         return None
 
     # Node was already converted
@@ -319,6 +319,8 @@ def find_measurable_transforms(
         transform = ExpTransform()
     elif isinstance(scalar_op, Log):
         transform = LogTransform()
+    elif isinstance(scalar_op, Reciprocal):
+        transform = InverseTransform()
     elif isinstance(scalar_op, Add):
         transform_inputs = (measurable_input, at.add(*other_inputs))
         transform = LocTransform(
@@ -411,6 +413,19 @@ class ExpTransform(RVTransform):
 
     def log_jac_det(self, value, *inputs):
         return -at.log(value)
+
+
+class InverseTransform(RVTransform):
+    name = "inverse"
+
+    def forward(self, value, *inputs):
+        return at.inv(value)
+
+    def backward(self, value, *inputs):
+        return at.inv(value)
+
+    def log_jac_det(self, value, *inputs):
+        return -at.log(value**2)
 
 
 class IntervalTransform(RVTransform):
