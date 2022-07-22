@@ -7,7 +7,7 @@ import scipy.stats as stats
 from aesara import function
 
 from aeppl.dists import dirac_delta
-from aeppl.logprob import ParameterValueError, logcdf, logprob
+from aeppl.logprob import ParameterValueError, icdf, logcdf, logprob
 
 # @pytest.fixture(scope="module", autouse=True)
 # def set_aesara_flags():
@@ -48,7 +48,7 @@ def create_aesara_params(dist_params, obs, size):
 
 
 def scipy_logprob_tester(
-    rv_var, obs, dist_params, test_fn=None, check_broadcastable=True, test_logcdf=False
+    rv_var, obs, dist_params, test_fn=None, check_broadcastable=True, test="logprob"
 ):
     """Test for correspondence between `RandomVariable` and NumPy shape and
     broadcast dimensions.
@@ -61,10 +61,15 @@ def scipy_logprob_tester(
 
         test_fn = getattr(stats, name)
 
-    if not test_logcdf:
+    if test == "logprob":
         aesara_res = logprob(rv_var, at.as_tensor(obs))
-    else:
+    elif test == "logcdf":
         aesara_res = logcdf(rv_var, at.as_tensor(obs))
+    elif test == "icdf":
+        aesara_res = icdf(rv_var, at.as_tensor(obs))
+    else:
+        raise ValueError(f"test must be one of (logprob, logcdf, icdf), got {test}")
+
     aesara_res_val = aesara_res.eval(dist_params)
 
     numpy_res = np.asarray(test_fn(obs, *dist_params.values()))
@@ -118,7 +123,7 @@ def test_uniform_logcdf(dist_params, obs, size):
     def scipy_logcdf(obs, l, u):
         return stats.uniform.logcdf(obs, loc=l, scale=u - l)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logcdf, test_logcdf=True)
+    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logcdf, test="logcdf")
 
 
 @pytest.mark.parametrize(
@@ -154,9 +159,25 @@ def test_normal_logcdf(dist_params, obs, size):
 
     x = at.random.normal(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(
-        x, obs, dist_params, test_fn=stats.norm.logcdf, test_logcdf=True
-    )
+    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.norm.logcdf, test="logcdf")
+
+
+@pytest.mark.parametrize(
+    "dist_params, obs, size",
+    [
+        ((0, 1), np.array([-0.5, 0, 0.3, 0.5, 1, 1.5], dtype=np.float64), ()),
+        ((-1, 20), np.array([-0.5, 0, 0.3, 0.5, 1, 1.5], dtype=np.float64), ()),
+        ((-1, 20), np.array([-0.5, 0, 0.3, 0.5, 1, 1.5], dtype=np.float64), (2, 3)),
+    ],
+)
+def test_normal_icdf(dist_params, obs, size):
+
+    dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
+    dist_params = dict(zip(dist_params_at, dist_params))
+
+    x = at.random.normal(*dist_params_at, size=size_at)
+
+    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.norm.ppf, test="icdf")
 
 
 @pytest.mark.parametrize(
@@ -705,9 +726,7 @@ def test_poisson_logcdf(dist_params, obs, size, error):
         return stats.poisson.logcdf(obs, mu)
 
     with cm:
-        scipy_logprob_tester(
-            x, obs, dist_params, test_fn=scipy_logcdf, test_logcdf=True
-        )
+        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logcdf, test="logcdf")
 
 
 @pytest.mark.parametrize(
@@ -774,6 +793,61 @@ def test_geometric_logprob(dist_params, obs, size, error):
 
     with cm:
         scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+
+
+@pytest.mark.parametrize(
+    "dist_params, obs, size, error",
+    [
+        ((-1,), np.array([0, 1, 100, 10000], dtype=np.int64), (), True),
+        ((0.1,), np.array([0, 1, 100, 10000], dtype=np.int64), (), False),
+        ((1.0,), np.array([0, 1, 100, 10000], dtype=np.int64), (3, 2), False),
+        (
+            (np.array([0.01, 0.2, 0.8]),),
+            np.array([-1, 1, 84], dtype=np.int64),
+            (),
+            False,
+        ),
+    ],
+)
+def test_geometric_logcdf(dist_params, obs, size, error):
+
+    dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
+    dist_params = dict(zip(dist_params_at, dist_params))
+
+    x = at.random.geometric(*dist_params_at, size=size_at)
+
+    cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
+
+    with cm:
+        scipy_logprob_tester(
+            x, obs, dist_params, test_fn=stats.geom.logcdf, test="logcdf"
+        )
+
+
+@pytest.mark.parametrize(
+    "dist_params, obs, size",
+    [
+        ((0.1,), np.array([-0.5, 0, 0.1, 0.5, 0.9, 1.0, 1.5], dtype=np.int64), ()),
+        ((0.5,), np.array([-0.5, 0, 0.1, 0.5, 0.9, 1.0, 1.5], dtype=np.int64), (3, 2)),
+        (
+            (np.array([0.0, 0.2, 0.5, 1.0]),),
+            np.array([0.7, 0.7, 0.7, 0.7], dtype=np.int64),
+            (),
+        ),
+    ],
+)
+def test_geometric_icdf(dist_params, obs, size):
+
+    dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
+    dist_params = dict(zip(dist_params_at, dist_params))
+
+    x = at.random.geometric(*dist_params_at, size=size_at)
+
+    def scipy_geom_icdf(value, p):
+        # Scipy ppf returns floats
+        return stats.geom.ppf(value, p).astype(value.dtype)
+
+    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_geom_icdf, test="icdf")
 
 
 @pytest.mark.parametrize(

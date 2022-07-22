@@ -45,6 +45,12 @@ def xlogy0(m, x):
     return at.switch(at.eq(x, 0), at.switch(at.eq(m, 0), 0.0, -np.inf), m * at.log(x))
 
 
+def logdiffexp(a, b):
+    """log(exp(a) - exp(b))"""
+    # TODO: This should be a basic Aesara stabilization
+    return a + at.log1mexp(b - a)
+
+
 def logprob(rv_var, *rv_values, **kwargs):
     """Create a graph for the log-probability of a ``RandomVariable``."""
     logprob = _logprob(rv_var.owner.op, rv_values, *rv_var.owner.inputs, **kwargs)
@@ -66,6 +72,14 @@ def logcdf(rv_var, rv_value, **kwargs):
         logcdf.name = f"{rv_var.name}_logcdf"
 
     return logcdf
+
+
+def icdf(rv, value, **kwargs):
+    """Create a graph for the icdf of a ``RandomVariable``."""
+    rv_icdf = _icdf(rv.owner.op, value, *rv.owner.inputs, **kwargs)
+    if rv.name:
+        rv_icdf.name = f"{rv.name}_icdf"
+    return rv_icdf
 
 
 @singledispatch
@@ -99,6 +113,22 @@ def _logcdf(
     for a ``RandomVariable``, register a new function on this dispatcher.
     """
     raise NotImplementedError(f"Logcdf method not implemented for {op}")
+
+
+@singledispatch
+def _icdf(
+    op: Op,
+    value: TensorVariable,
+    *inputs: TensorVariable,
+    **kwargs,
+):
+    """Create a graph for the icdf of a ``RandomVariable``.
+
+    This function dispatches on the type of ``op``, which should be a subclass
+    of ``RandomVariable``.  If you want to implement new icdf graphs
+    for a ``RandomVariable``, register a new function on this dispatcher.
+    """
+    raise NotImplementedError(f"icdf not implemented for {op}")
 
 
 @_logprob.register(arb.UniformRV)
@@ -156,6 +186,12 @@ def normal_logcdf(op, value, *inputs, **kwargs):
 
     res = CheckParameterValue("sigma > 0")(res, at.all(at.gt(sigma, 0.0)))
     return res
+
+
+@_icdf.register(arb.NormalRV)
+def normal_icdf(op, value, *inputs, **kwargs):
+    loc, scale = inputs[3:]
+    return loc + scale * -np.sqrt(2.0) * at.erfcinv(2 * value)
 
 
 @_logprob.register(arb.HalfNormalRV)
@@ -468,6 +504,22 @@ def geometric_logprob(op, values, *inputs, **kwargs):
         res, at.all(at.le(0.0, p)), at.all(at.ge(1.0, p))
     )
     return res
+
+
+@_logcdf.register(arb.GeometricRV)
+def geometric_logcdf(op, value, *inputs, **kwargs):
+    (p,) = inputs[3:]
+    res = at.switch(at.le(value, 0), -np.inf, at.log1mexp(at.log1p(-p) * value))
+    res = CheckParameterValue("0 <= p <= 1")(
+        res, at.all(at.le(0.0, p)), at.all(at.ge(1.0, p))
+    )
+    return res
+
+
+@_icdf.register(arb.GeometricRV)
+def geometric_icdf(op, value, *inputs, **kwargs):
+    (p,) = inputs[3:]
+    return at.ceil(at.log1p(-value) / at.log1p(-p)).astype(op.dtype)
 
 
 @_logprob.register(arb.HyperGeometricRV)
