@@ -11,11 +11,14 @@ from aesara.graph.opt import (
     pre_greedy_local_optimizer,
 )
 from aesara.ifelse import ifelse
+from aesara.scalar.basic import Switch
 from aesara.tensor.basic import Join, MakeVector
+from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.random.opt import local_dimshuffle_rv_lift, local_subtensor_rv_lift
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import (
     as_index_literal,
+    as_nontensor_scalar,
     get_canonical_form_slice,
     is_basic_idx,
 )
@@ -248,7 +251,6 @@ def mixture_replace(fgraph, node):
     From these terms, new terms ``Z_rv[i] = mixture_comps[i][i == I_rv]`` are
     created for each ``i`` in ``enumerate(mixture_comps)``.
     """
-
     rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
 
     if rv_map_feature is None:
@@ -289,6 +291,50 @@ def mixture_replace(fgraph, node):
     if aesara.config.compute_test_value != "off":
         # We can't use `MixtureRV` to compute a test value; instead, we'll use
         # the original node's test value.
+        if not hasattr(old_mixture_rv.tag, "test_value"):
+            compute_test_value(node)
+
+        new_mixture_rv.tag.test_value = old_mixture_rv.tag.test_value
+
+    if old_mixture_rv.name:
+        new_mixture_rv.name = f"{old_mixture_rv.name}-mixture"
+
+    return [new_mixture_rv]
+
+
+@local_optimizer((Elemwise,))
+def switch_mixture_replace(fgraph, node):
+    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+
+    if rv_map_feature is None:
+        return None  # pragma: no cover
+
+    if not isinstance(node.op.scalar_op, Switch):
+        return None  # pragma: no cover
+
+    old_mixture_rv = node.default_output()
+    # idx, component_1, component_2 = node.inputs
+
+    mixture_rvs = []
+
+    for component_rv in node.inputs[1:]:
+        new_node = assign_custom_measurable_outputs(component_rv.owner)
+        out_idx = component_rv.owner.outputs.index(component_rv)
+        new_comp_rv = new_node.outputs[out_idx]
+        mixture_rvs.append(new_comp_rv)
+
+    mix_op = MixtureRV(
+        2,
+        old_mixture_rv.dtype,
+        old_mixture_rv.broadcastable,
+    )
+    new_node = mix_op.make_node(
+        *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
+    )
+
+    new_mixture_rv = new_node.default_output()
+
+    if aesara.config.compute_test_value != "off":
         if not hasattr(old_mixture_rv.tag, "test_value"):
             compute_test_value(node)
 
@@ -366,6 +412,17 @@ logprob_rewrites_db.register(
     "mixture_replace",
     EquilibriumOptimizer(
         [mixture_replace], max_use_ratio=aesara.config.optdb__max_use_ratio
+    ),
+    0,
+    "basic",
+    "mixture",
+)
+
+
+logprob_rewrites_db.register(
+    "switch_mixture_replace",
+    EquilibriumOptimizer(
+        [switch_mixture_replace], max_use_ratio=aesara.config.optdb__max_use_ratio
     ),
     0,
     "basic",
