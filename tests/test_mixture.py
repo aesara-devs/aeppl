@@ -9,7 +9,8 @@ from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import as_index_constant
 
 from aeppl.joint_logprob import factorized_joint_logprob, joint_logprob
-from aeppl.mixture import expand_indices
+from aeppl.mixture import MixtureRV, expand_indices
+from aeppl.opt import construct_ir_fgraph
 from tests.test_logprob import scipy_logprob
 from tests.utils import assert_no_rvs
 
@@ -705,3 +706,34 @@ def test_mixture_with_DiracDelta():
     logp_res = factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv})
 
     assert m_vv in logp_res
+
+
+def test_switch_mixture():
+    srng = at.random.RandomStream(29833)
+
+    X_rv = srng.normal(-10.0, 0.1, name="X")
+    Y_rv = srng.normal(10.0, 0.1, name="Y")
+
+    I_rv = srng.bernoulli(0.5, name="I")
+    i_vv = I_rv.clone()
+    i_vv.name = "i"
+
+    Z1_rv = at.switch(I_rv, X_rv, Y_rv)
+    z1_vv = Z1_rv.clone()
+    z1_vv.name = "z1"
+
+    fgraph, _, _ = construct_ir_fgraph({Z1_rv: z1_vv, I_rv: i_vv})
+
+    assert isinstance(fgraph.outputs[0].owner.op, MixtureRV)
+
+    # building the identical graph but with a stack
+
+    Z2_rv = at.stack(X_rv, Y_rv)[I_rv]
+    z2_vv = Z2_rv.clone()
+    z2_vv.name = "z2"
+
+    z1_logp = joint_logprob({Z1_rv: z1_vv, I_rv: i_vv}).eval({z1_vv: -10, i_vv: 0})
+    z2_logp = joint_logprob({Z2_rv: z2_vv, I_rv: i_vv}).eval({z2_vv: -10, i_vv: 0})
+
+    np.testing.assert_almost_equal(0.69049938, z1_logp)
+    np.testing.assert_almost_equal(0.69049938, z2_logp)
