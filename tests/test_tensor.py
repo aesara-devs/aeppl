@@ -265,5 +265,5 @@ def test_unmeargeable_dimshuffles():
     w = z.dimshuffle((1, 0, 2))
 
     # TODO: Check that logp is correct if this type of graphs is ever supported
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(w)

@@ -497,8 +497,11 @@ def test_vonmises_logprob(dist_params, obs, size, error):
     def scipy_logprob(obs, mu, kappa):
         return stats.vonmises.logpdf(obs, kappa, loc=mu)
 
-    with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+    with pytest.raises(
+        UserWarning, match="The Op i0 does not provide a C implementation"
+    ):
+        with cm:
+            scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(

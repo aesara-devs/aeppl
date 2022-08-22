@@ -463,16 +463,12 @@ def test_mixture_transform():
 
     transform_rewrite = TransformValuesRewrite({Y_rv: LogOddsTransform()})
 
-    with pytest.warns(None) as record:
-        # This shouldn't raise any warnings
-        logp_trans, (y_vv_trans, i_vv_trans) = joint_logprob(
-            Y_rv,
-            I_rv,
-            extra_rewrites=transform_rewrite,
-            use_jacobian=False,
-        )
-
-    assert not record.list
+    logp_trans, (y_vv_trans, i_vv_trans) = joint_logprob(
+        Y_rv,
+        I_rv,
+        extra_rewrites=transform_rewrite,
+        use_jacobian=False,
+    )
 
     logp_fn = aesara.function((i_vv, y_vv), logp)
     logp_trans_fn = aesara.function((i_vv_trans, y_vv_trans), logp_trans)
@@ -588,8 +584,8 @@ def test_loc_transform_rv(rv_size, loc_type):
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, y_vv], logp)
 
-    loc_test_val = np.full(rv_size, 4.0)
-    y_test_val = np.full(rv_size, 1.0)
+    loc_test_val = np.full(rv_size or (), 4.0)
+    y_test_val = np.full(rv_size or (), 1.0)
 
     np.testing.assert_allclose(
         logp_fn(loc_test_val, y_test_val),
@@ -616,8 +612,8 @@ def test_scale_transform_rv(rv_size, scale_type):
     assert_no_rvs(logp)
     logp_fn = aesara.function([scale, y_vv], logp)
 
-    scale_test_val = np.full(rv_size, 4.0)
-    y_test_val = np.full(rv_size, 1.0)
+    scale_test_val = np.full(rv_size or (), 4.0)
+    y_test_val = np.full(rv_size or (), 1.0)
 
     np.testing.assert_allclose(
         logp_fn(scale_test_val, y_test_val),
@@ -648,7 +644,7 @@ def test_loc_transform_multiple_rvs_fails1():
     x_rv2 = at.random.normal(name="x_rv2")
     y_rv = x_rv1 + x_rv2
 
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(y_rv)
 
 
@@ -657,19 +653,19 @@ def test_nested_loc_transform_multiple_rvs_fails2():
     x_rv2 = at.cos(at.random.normal(name="x_rv2"))
     y_rv = x_rv1 + x_rv2
 
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(y_rv)
 
 
 def test_discrete_rv_unary_transform_fails():
     y_rv = at.exp(at.random.poisson(1))
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(y_rv)
 
 
 def test_discrete_rv_multinary_transform_fails():
     y_rv = 5 + at.random.poisson(1)
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(y_rv)
 
 
