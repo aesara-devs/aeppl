@@ -10,7 +10,7 @@ from aesara.graph.rewriting.basic import (
     node_rewriter,
     pre_greedy_node_rewriter,
 )
-from aesara.ifelse import ifelse
+from aesara.ifelse import IfElse, ifelse
 from aesara.scalar.basic import Switch
 from aesara.tensor.basic import Join, MakeVector
 from aesara.tensor.elemwise import Elemwise
@@ -312,6 +312,58 @@ def switch_mixture_replace(fgraph, node):
     if rv_map_feature is None:
         return None  # pragma: no cover
 
+    old_mixture_rv = node.default_output()
+    # idx, component_1, component_2 = node.inputs
+
+    mixture_rvs = []
+
+    for component_rv in node.inputs[1:]:
+        if not (
+            component_rv.owner
+            and isinstance(component_rv.owner.op, MeasurableVariable)
+            and component_rv not in rv_map_feature.rv_values
+        ):
+            return None
+        new_node = assign_custom_measurable_outputs(component_rv.owner)
+        out_idx = component_rv.owner.outputs.index(component_rv)
+        new_comp_rv = new_node.outputs[out_idx]
+        mixture_rvs.append(new_comp_rv)
+
+    """
+    Unlike mixtures generated via at.stack, there is only one condition, i.e. index
+    for switch/ifelse-defined mixture sub-graphs. However, this condition can be
+    non-scalar for Switch Ops.
+    """
+    mix_op = MixtureRV(
+        2,
+        old_mixture_rv.dtype,
+        old_mixture_rv.broadcastable,
+    )
+    new_node = mix_op.make_node(
+        *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
+    )
+
+    new_mixture_rv = new_node.default_output()
+
+    if aesara.config.compute_test_value != "off":
+        if not hasattr(old_mixture_rv.tag, "test_value"):
+            compute_test_value(node)
+
+        new_mixture_rv.tag.test_value = old_mixture_rv.tag.test_value
+
+    if old_mixture_rv.name:
+        new_mixture_rv.name = f"{old_mixture_rv.name}-mixture"
+
+    return [new_mixture_rv]
+
+
+@node_rewriter((IfElse,))
+def ifelse_mixture_replace(fgraph, node):
+    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+
+    if rv_map_feature is None:
+        return None  # pragma: no cover
+
     if not isinstance(node.op.scalar_op, Switch):
         return None  # pragma: no cover
 
@@ -332,6 +384,11 @@ def switch_mixture_replace(fgraph, node):
         new_comp_rv = new_node.outputs[out_idx]
         mixture_rvs.append(new_comp_rv)
 
+    """
+    Unlike mixtures generated via at.stack, there is only one condition, i.e. index
+    for switch/ifelse-defined mixture sub-graphs. However, this condition can be
+    non-scalar for Switch Ops.
+    """
     mix_op = MixtureRV(
         2,
         old_mixture_rv.type.dtype,
@@ -420,7 +477,7 @@ def logprob_MixtureRV(
 logprob_rewrites_db.register(
     "mixture_replace",
     EquilibriumGraphRewriter(
-        [mixture_replace, switch_mixture_replace],
+        [mixture_replace, switch_mixture_replace, ifelse_mixture_replace],
         max_use_ratio=aesara.config.optdb__max_use_ratio,
     ),
     "basic",

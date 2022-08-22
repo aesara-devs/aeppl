@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats.distributions as sp
 from aesara.graph.basic import Variable, equal_computations
+from aesara.ifelse import ifelse
 from aesara.tensor.random.basic import CategoricalRV
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import as_index_constant
@@ -682,7 +683,8 @@ def test_mixture_with_DiracDelta():
     assert M_rv in logp_res
 
 
-def test_switch_mixture():
+@pytest.mark.parametrize("op", [at.switch, ifelse])
+def test_switch_ifelse_mixture(op):
     srng = at.random.RandomStream(29833)
 
     X_rv = srng.normal(-10.0, 0.1, name="X")
@@ -692,7 +694,7 @@ def test_switch_mixture():
     i_vv = I_rv.clone()
     i_vv.name = "i"
 
-    Z1_rv = at.switch(I_rv, X_rv, Y_rv)
+    Z1_rv = op(I_rv, X_rv, Y_rv)
     z_vv = Z1_rv.clone()
     z_vv.name = "z1"
 
