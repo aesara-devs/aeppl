@@ -57,7 +57,7 @@ def test_bernoulli_cumsum(size, axis):
 def test_destructive_cumsum_fails():
     """Test that a cumsum that mixes dimensions fails"""
     x_rv = at.random.normal(size=(2, 2, 2)).cumsum()
-    with pytest.raises(RuntimeError, match="could not be derived"):
+    with pytest.raises(UserWarning, match="Found a random variable that is not"):
         joint_logprob(x_rv)
 
 

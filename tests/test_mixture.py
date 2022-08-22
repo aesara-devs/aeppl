@@ -42,8 +42,8 @@ def test_mixture_basics():
     M_rv = env["M_rv"]
 
     with pytest.raises(
-        RuntimeError,
-        match="The logprob terms of the following random variables could not be derived: {M}",
+        UserWarning,
+        match="Found a random variable that is not",
     ):
         conditional_logprob(M_rv, I_rv, X_rv)
 
