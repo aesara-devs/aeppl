@@ -313,48 +313,21 @@ def switch_mixture_replace(fgraph, node):
         return None  # pragma: no cover
 
     old_mixture_rv = node.default_output()
-    # idx, component_1, component_2 = node.inputs
 
-    mixture_rvs = []
-
-    for component_rv in node.inputs[1:]:
-        if not (
-            component_rv.owner
-            and isinstance(component_rv.owner.op, MeasurableVariable)
-            and component_rv not in rv_map_feature.rv_values
-        ):
-            return None
-        new_node = assign_custom_measurable_outputs(component_rv.owner)
-        out_idx = component_rv.owner.outputs.index(component_rv)
-        new_comp_rv = new_node.outputs[out_idx]
-        mixture_rvs.append(new_comp_rv)
-
-    """
-    Unlike mixtures generated via at.stack, there is only one condition, i.e. index
-    for switch/ifelse-defined mixture sub-graphs. However, this condition can be
-    non-scalar for Switch Ops.
-    """
-    mix_op = MixtureRV(
-        2,
-        old_mixture_rv.dtype,
-        old_mixture_rv.broadcastable,
+    # Add an extra dimension to the indices so that the `MixtureRV` we
+    # construct represents a valid
+    # `at.stack(node.inputs[1:])[f(node.inputs[0])]`, for some function `f`,
+    # that's equivalent to `at.switch(*node.inputs)`.
+    out_shape = at.broadcast_shape(
+        *(tuple(v.shape) for v in node.inputs[1:]), arrays_are_shapes=True
     )
-    new_node = mix_op.make_node(
-        *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
-    )
+    switch_indices = (node.inputs[0],) + tuple(at.arange(s) for s in out_shape)
 
-    new_mixture_rv = new_node.default_output()
+    # Construct the proxy/intermediate mixture representation
+    switch_stack = at.stack(node.inputs[::-1])[switch_indices]
+    switch_stack.name = old_mixture_rv.name
 
-    if aesara.config.compute_test_value != "off":
-        if not hasattr(old_mixture_rv.tag, "test_value"):
-            compute_test_value(node)
-
-        new_mixture_rv.tag.test_value = old_mixture_rv.tag.test_value
-
-    if old_mixture_rv.name:
-        new_mixture_rv.name = f"{old_mixture_rv.name}-mixture"
-
-    return [new_mixture_rv]
+    return mixture_replace.transform(fgraph, switch_stack.owner)
 
 
 @node_rewriter((IfElse,))
@@ -394,9 +367,15 @@ def ifelse_mixture_replace(fgraph, node):
         old_mixture_rv.type.dtype,
         old_mixture_rv.type.shape,
     )
-    new_node = mix_op.make_node(
-        *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
-    )
+
+    if node.inputs[0].ndim == 0:
+        # as_nontensor_scalar to allow graphs to be identical to mixture sub-graphs
+        # created using at.stack and Subtensor indexing
+        new_node = mix_op.make_node(
+            *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
+        )
+    else:
+        new_node = mix_op.make_node(*([at.constant(0), node.inputs[0]] + mixture_rvs))
 
     new_mixture_rv = new_node.default_output()
 
