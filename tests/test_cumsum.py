@@ -23,7 +23,7 @@ from tests.utils import assert_no_rvs
 def test_normal_cumsum(size, axis):
     rv = at.random.normal(0, 1, size=size).cumsum(axis)
     vv = rv.clone()
-    logp = joint_logprob({rv: vv})
+    logp = joint_logprob({rv: vv}, sum=True)
     assert_no_rvs(logp)
 
     assert np.isclose(
@@ -47,7 +47,7 @@ def test_normal_cumsum(size, axis):
 def test_bernoulli_cumsum(size, axis):
     rv = at.random.bernoulli(0.9, size=size).cumsum(axis)
     vv = rv.clone()
-    logp = joint_logprob({rv: vv})
+    logp = joint_logprob({rv: vv}, sum=True)
     assert_no_rvs(logp)
 
     assert np.isclose(
@@ -72,7 +72,7 @@ def test_deterministic_cumsum():
 
     x_vv = x_rv.clone()
     y_vv = y_rv.clone()
-    logp = joint_logprob({x_rv: x_vv, y_rv: y_vv})
+    logp = joint_logprob({x_rv: x_vv, y_rv: y_vv}, sum=True)
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([x_vv, y_vv], logp)

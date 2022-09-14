@@ -293,7 +293,7 @@ def test_scan_joint_logprob(require_inner_rewrites):
     s_vv = S_rv.clone()
     s_vv.name = "s"
 
-    y_logp = joint_logprob({Y_rv: y_vv, S_rv: s_vv, Gamma_rv: Gamma_vv})
+    y_logp = joint_logprob({Y_rv: y_vv, S_rv: s_vv, Gamma_rv: Gamma_vv}, sum=True)
 
     y_val = np.arange(10)
     s_val = np.array([0, 1, 0, 1, 1, 0, 0, 0, 1, 1])
@@ -408,7 +408,7 @@ def test_mode_is_kept(remove_asserts):
     )
     x.name = "x"
     x_vv = x.clone()
-    x_logp = aesara.function([x_vv], joint_logprob({x: x_vv}))
+    x_logp = aesara.function([x_vv], joint_logprob({x: x_vv}, sum=True))
 
     x_test_val = np.full((10,), -1)
     if remove_asserts:

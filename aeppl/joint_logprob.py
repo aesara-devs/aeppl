@@ -1,6 +1,6 @@
 import warnings
 from collections import deque
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 import aesara.tensor as at
 from aesara import config
@@ -73,7 +73,7 @@ def factorized_joint_logprob(
     Returns
     =======
     A ``dict`` that maps each value variable to the log-probability factor derived
-    from the respective `RandomVariable`.
+    from the respective `RandomVariable`, in the same order as the input `rv_values`
 
     """
     fgraph, rv_values, _ = construct_ir_fgraph(rv_values)
@@ -175,33 +175,39 @@ def factorized_joint_logprob(
             for node in io_toposort(graph_inputs(q_logprob_vars), q_logprob_vars):
                 compute_test_value(node)
 
-    missing_value_terms = set(original_values.values()) - set(logprob_vars.keys())
+    original_values_ordered = tuple(rv_values.values())
+
+    missing_value_terms = set(original_values_ordered) - set(logprob_vars.keys())
     if missing_value_terms:
         raise RuntimeError(
             f"The logprob terms of the following value variables could not be derived: {missing_value_terms}"
         )
 
-    return logprob_vars
+    # Returned logprob terms sorted by order of input `rv_values`
+    return {
+        original_value: logprob_vars[original_value]
+        for original_value in original_values_ordered
+    }
 
 
-def joint_logprob(*args, sum: bool = True, **kwargs) -> Optional[TensorVariable]:
+def joint_logprob(
+    *args, sum: bool = False, **kwargs
+) -> Union[TensorVariable, Tuple[TensorVariable, ...]]:
     """Create a graph representing the joint log-probability/measure of a graph.
 
     This function calls `factorized_joint_logprob` and returns the combined
-    log-probability factors as a single graph.
+    log-probability factors.
 
     Parameters
     ----------
-    sum: bool
-        If ``True`` each factor is collapsed to a scalar via ``sum`` before
-        being joined with the remaining factors. This may be necessary to
-        avoid incorrect broadcasting among independent factors.
+    sum: bool, default False
+        If ``False``, each logprob factor is returned as a separate output, in the same
+        order as the requested rv_values pairs. If ``True``, all the logprob factors
+        are summed reduced together into a scalar output.
 
     """
     logprob = factorized_joint_logprob(*args, **kwargs)
-    if not logprob:
-        return None
-    elif len(logprob) == 1:
+    if len(logprob) == 1:
         logprob = tuple(logprob.values())[0]
         if sum:
             return at.sum(logprob)
@@ -211,4 +217,4 @@ def joint_logprob(*args, sum: bool = True, **kwargs) -> Optional[TensorVariable]
         if sum:
             return at.sum([at.sum(factor) for factor in logprob.values()])
         else:
-            return at.add(*logprob.values())
+            return tuple(logprob.values())

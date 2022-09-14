@@ -61,7 +61,7 @@ def test_mixture_basics():
         i_vv = env["i_vv"]
         M_rv = env["M_rv"]
         m_vv = env["m_vv"]
-        joint_logprob({M_rv: m_vv, I_rv: i_vv})
+        joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=True)
 
 
 @aesara.config.change_flags(compute_test_value="warn")
@@ -95,7 +95,7 @@ def test_compute_test_value(op_constructor):
 
     del M_rv.tag.test_value
 
-    M_logp = joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    M_logp = at.add(*joint_logprob({M_rv: m_vv, I_rv: i_vv}))
 
     assert isinstance(M_logp.tag.test_value, np.ndarray)
 
@@ -137,7 +137,7 @@ def test_hetero_mixture_binomial(p_val, size):
     m_vv = M_rv.clone()
     m_vv.name = "m"
 
-    M_logp = joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    M_logp = at.add(*joint_logprob({M_rv: m_vv, I_rv: i_vv}))
 
     M_logp_fn = aesara.function([p_at, m_vv, i_vv], M_logp)
 
@@ -410,7 +410,7 @@ def test_hetero_mixture_categorical(
     m_vv = M_rv.clone()
     m_vv.name = "m"
 
-    logp_parts = factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    logp_parts = factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv})
 
     I_logp_fn = aesara.function([p_at, i_vv], logp_parts[i_vv])
     M_logp_fn = aesara.function([m_vv, i_vv], logp_parts[m_vv])
@@ -748,8 +748,8 @@ def test_switch_mixture():
 
     assert equal_computations(fgraph.outputs, fgraph2.outputs)
 
-    z1_logp = joint_logprob({Z1_rv: z_vv, I_rv: i_vv})
-    z2_logp = joint_logprob({Z2_rv: z_vv, I_rv: i_vv})
+    z1_logp = joint_logprob({Z1_rv: z_vv, I_rv: i_vv}, sum=True)
+    z2_logp = joint_logprob({Z2_rv: z_vv, I_rv: i_vv}, sum=True)
 
     # below should follow immediately from the equal_computations assertion above
     assert equal_computations([z1_logp], [z2_logp])

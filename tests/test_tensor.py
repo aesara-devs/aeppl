@@ -56,9 +56,10 @@ def test_measurable_make_vector():
     y_vv = y_rv.clone()
 
     ref_logp = joint_logprob(
-        {base1_rv: base1_vv, base2_rv: base2_vv, base3_rv: base3_vv}
+        {base1_rv: base1_vv, base2_rv: base2_vv, base3_rv: base3_vv},
+        sum=True,
     )
-    make_vector_logp = joint_logprob({y_rv: y_vv}, sum=False)
+    make_vector_logp = joint_logprob({y_rv: y_vv})
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -106,7 +107,7 @@ def test_measurable_join_univariate(size1, size2, axis, concatenate):
         base_logps = at.concatenate(base_logps, axis=axis)
     else:
         base_logps = at.stack(base_logps, axis=axis)
-    y_logp = joint_logprob({y_rv: y_vv}, sum=False)
+    y_logp = joint_logprob({y_rv: y_vv})
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -181,7 +182,7 @@ def test_measurable_join_multivariate(
     else:
         axis_norm = np.core.numeric.normalize_axis_index(axis, base1_rv.ndim + 1)
         base_logps = at.stack(base_logps, axis=axis_norm - 1)
-    y_logp = joint_logprob({y_rv: y_vv}, sum=False)
+    y_logp = joint_logprob({y_rv: y_vv})
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -242,9 +243,8 @@ def test_measurable_dimshuffle(ds_order, multivariate):
     else:
         logp_ds_order = ds_order
 
-    ref_logp = joint_logprob({base_rv: base_vv}, sum=False).dimshuffle(logp_ds_order)
-    ds_logp = joint_logprob({ds_rv: ds_vv}, sum=False)
-    assert ds_logp is not None
+    ref_logp = joint_logprob({base_rv: base_vv}).dimshuffle(logp_ds_order)
+    ds_logp = joint_logprob({ds_rv: ds_vv})
 
     ref_logp_fn = aesara.function([base_vv], ref_logp)
     ds_logp_fn = aesara.function([ds_vv], ds_logp)

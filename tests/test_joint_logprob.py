@@ -27,7 +27,7 @@ def test_joint_logprob_basic():
     a.name = "a"
     a_value_var = a.clone()
 
-    a_logp = joint_logprob({a: a_value_var}, sum=False)
+    a_logp = joint_logprob({a: a_value_var})
     a_logp_exp = logprob(a, a_value_var)
 
     assert equal_computations([a_logp], [a_logp_exp])
@@ -39,7 +39,7 @@ def test_joint_logprob_basic():
     sigma_value_var = sigma.clone()
     y_value_var = Y.clone()
 
-    total_ll = joint_logprob({Y: y_value_var, sigma: sigma_value_var}, sum=False)
+    total_ll = at.add(*joint_logprob({Y: y_value_var, sigma: sigma_value_var}))
 
     # We need to replace the reference to `sigma` in `Y` with its value
     # variable
@@ -63,7 +63,7 @@ def test_joint_logprob_basic():
     b_value_var = b.clone()
     c_value_var = c.clone()
 
-    b_logp = joint_logprob({a: a_value_var, b: b_value_var, c: c_value_var})
+    b_logp = joint_logprob({a: a_value_var, b: b_value_var, c: c_value_var}, sum=True)
 
     # There shouldn't be any `RandomVariable`s in the resulting graph
     assert_no_rvs(b_logp)
@@ -82,7 +82,7 @@ def test_joint_logprob_multi_obs():
     a_val = a.clone()
     b_val = b.clone()
 
-    logp = joint_logprob({a: a_val, b: b_val}, sum=False)
+    logp = at.add(*joint_logprob({a: a_val, b: b_val}))
     logp_exp = logprob(a, a_val) + logprob(b, b_val)
 
     assert equal_computations([logp], [logp_exp])
@@ -93,8 +93,8 @@ def test_joint_logprob_multi_obs():
     x_val = x.clone()
     y_val = y.clone()
 
-    logp = joint_logprob({x: x_val, y: y_val})
-    exp_logp = joint_logprob({x: x_val, y: y_val})
+    logp = joint_logprob({x: x_val, y: y_val}, sum=True)
+    exp_logp = joint_logprob({x: x_val, y: y_val}, sum=True)
 
     assert equal_computations([logp], [exp_logp])
 
@@ -109,7 +109,7 @@ def test_joint_logprob_diff_dims():
     y_vv = y.clone()
     y_vv.name = "y"
 
-    logp = joint_logprob({x: x_vv, y: y_vv})
+    logp = joint_logprob({x: x_vv, y: y_vv}, sum=True)
 
     M_val = np.random.normal(size=(10, 3))
     x_val = np.random.normal(size=(3,))
@@ -153,7 +153,7 @@ def test_joint_logprob_incsubtensor(indices, size):
         Y_rv.owner.op, (IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1)
     )
 
-    Y_rv_logp = joint_logprob({Y_rv: y_value_var}, sum=False)
+    Y_rv_logp = joint_logprob({Y_rv: y_value_var})
 
     obs_logps = Y_rv_logp.eval({y_value_var: y_val})
 
@@ -208,7 +208,7 @@ def test_joint_logprob_subtensor():
     I_value_var = I_rv.type()
     I_value_var.name = "I_value"
 
-    A_idx_logp = joint_logprob({A_idx: A_idx_value_var, I_rv: I_value_var}, sum=False)
+    A_idx_logp = at.add(*joint_logprob({A_idx: A_idx_value_var, I_rv: I_value_var}))
 
     logp_vals_fn = aesara.function([A_idx_value_var, I_value_var], A_idx_logp)
 
@@ -243,13 +243,13 @@ def test_persist_inputs():
     beta_vv = beta_rv.type()
     y_vv = Y_rv.clone()
 
-    logp = joint_logprob({beta_rv: beta_vv, Y_rv: y_vv})
+    logp = joint_logprob({beta_rv: beta_vv, Y_rv: y_vv}, sum=True)
 
     assert x in ancestors([logp])
 
     # Make sure we don't clone value variables when they're graphs.
     y_vv_2 = y_vv * 2
-    logp_2 = joint_logprob({beta_rv: beta_vv, Y_rv: y_vv_2})
+    logp_2 = joint_logprob({beta_rv: beta_vv, Y_rv: y_vv_2}, sum=True)
 
     assert y_vv_2 in ancestors([logp_2])
 
@@ -277,3 +277,21 @@ def test_multiple_rvs_to_same_value_raises():
     msg = "More than one logprob factor was assigned to the value var x"
     with pytest.raises(ValueError, match=msg):
         joint_logprob({x_rv1: x, x_rv2: x})
+
+
+def test_factorized_joint_logprob_output_order():
+    """Test that logprob terms are returned in the same order in which they were requested"""
+    x_rv = at.random.normal(name="x")
+    y_rv = at.random.normal(x_rv, name="y")
+
+    x_vv = x_rv.clone()
+    y_vv = y_rv.clone()
+
+    assert tuple(factorized_joint_logprob({x_rv: x_vv, y_rv: y_vv}).keys()) == (
+        x_vv,
+        y_vv,
+    )
+    assert tuple(factorized_joint_logprob({y_rv: y_vv, x_rv: x_vv}).keys()) == (
+        y_vv,
+        x_vv,
+    )

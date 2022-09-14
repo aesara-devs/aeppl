@@ -25,7 +25,7 @@ def test_scalar_clipped_mixture():
     idxs_vv = idxs.clone()
     idxs_vv.name = "idxs_val"
 
-    logp = joint_logprob({idxs: idxs_vv, mix: mix_vv})
+    logp = joint_logprob({idxs: idxs_vv, mix: mix_vv}, sum=True)
 
     logp_fn = aesara.function([idxs_vv, mix_vv], logp)
     assert logp_fn(0, 0.4) == -np.inf
@@ -63,7 +63,8 @@ def test_nested_scalar_mixtures():
     mix12_vv = mix12.clone()
 
     logp = joint_logprob(
-        {idxs1: idxs1_vv, idxs2: idxs2_vv, idxs12: idxs12_vv, mix12: mix12_vv}
+        {idxs1: idxs1_vv, idxs2: idxs2_vv, idxs12: idxs12_vv, mix12: mix12_vv},
+        sum=True,
     )
     logp_fn = aesara.function([idxs1_vv, idxs2_vv, idxs12_vv, mix12_vv], logp)
 
@@ -110,7 +111,7 @@ def test_shifted_cumsum():
     y.name = "y"
 
     y_vv = y.clone()
-    logp = joint_logprob({y: y_vv})
+    logp = joint_logprob({y: y_vv}, sum=True)
     assert np.isclose(
         logp.eval({y_vv: np.arange(5) + 1 + 5}),
         st.norm.logpdf(1) * 5,
@@ -123,7 +124,7 @@ def test_double_log_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     logp_fn = aesara.function([y_vv], logp)
 
     log_log_y_val = np.asarray(0.5)
@@ -144,7 +145,7 @@ def test_affine_transform_rv():
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, scale, y_vv], logp)
 
@@ -166,7 +167,7 @@ def test_affine_log_transform_rv():
 
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     logp_fn = aesara.function([a, b, y_vv], logp)
 
     a_val = -1.5

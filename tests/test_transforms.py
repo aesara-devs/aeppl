@@ -186,7 +186,9 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
 
     transform_rewrite = TransformValuesRewrite({a_value_var: DEFAULT_TRANSFORM})
     res = joint_logprob(
-        {a: a_value_var, b: b_value_var}, extra_rewrites=transform_rewrite
+        {a: a_value_var, b: b_value_var},
+        extra_rewrites=transform_rewrite,
+        sum=True,
     )
 
     test_val_rng = np.random.RandomState(3238)
@@ -275,7 +277,10 @@ def test_simple_transformed_logprob_nojac(use_jacobian):
 
     transform_rewrite = TransformValuesRewrite({x_vv: DEFAULT_TRANSFORM})
     tr_logp = joint_logprob(
-        {X_rv: x_vv}, extra_rewrites=transform_rewrite, use_jacobian=use_jacobian
+        {X_rv: x_vv},
+        extra_rewrites=transform_rewrite,
+        use_jacobian=use_jacobian,
+        sum=True,
     )
 
     assert np.isclose(
@@ -335,6 +340,7 @@ def test_hierarchical_uniform_transform():
     logp = joint_logprob(
         {lower_rv: lower, upper_rv: upper, x_rv: x},
         extra_rewrites=transform_rewrite,
+        sum=True,
     )
 
     assert_no_rvs(logp)
@@ -361,6 +367,7 @@ def test_nondefault_transforms():
     logp = joint_logprob(
         {loc_rv: loc, scale_rv: scale, x_rv: x},
         extra_rewrites=transform_rewrite,
+        sum=True,
     )
 
     # Check numerical evaluation matches with expected transforms
@@ -395,10 +402,7 @@ def test_default_transform_multiout():
 
     transform_rewrite = TransformValuesRewrite({x: DEFAULT_TRANSFORM})
 
-    logp = joint_logprob(
-        {x_rv: x},
-        extra_rewrites=transform_rewrite,
-    )
+    logp = joint_logprob({x_rv: x}, extra_rewrites=transform_rewrite, sum=True)
 
     assert np.isclose(
         logp.eval({x: 1}),
@@ -419,6 +423,7 @@ def test_nonexistent_default_transform():
     logp = joint_logprob(
         {x_rv: x},
         extra_rewrites=transform_rewrite,
+        sum=True,
     )
 
     assert np.isclose(
@@ -476,6 +481,7 @@ def test_mixture_transform():
 
     logp_no_trans = joint_logprob(
         {Y_rv: y_vv, I_rv: i_vv},
+        sum=True,
     )
 
     transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
@@ -486,6 +492,7 @@ def test_mixture_transform():
             {Y_rv: y_vv, I_rv: i_vv},
             extra_rewrites=transform_rewrite,
             use_jacobian=False,
+            sum=True,
         )
 
     assert not record.list
@@ -564,7 +571,7 @@ def test_exp_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -580,7 +587,7 @@ def test_log_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -605,7 +612,7 @@ def test_loc_transform_rv(rv_size, loc_type):
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, y_vv], logp)
 
@@ -633,7 +640,7 @@ def test_scale_transform_rv(rv_size, scale_type):
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = joint_logprob({y_rv: y_vv})
     assert_no_rvs(logp)
     logp_fn = aesara.function([scale, y_vv], logp)
 
@@ -653,7 +660,7 @@ def test_transformed_rv_and_value():
 
     transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
 
-    logp = joint_logprob({y_rv: y_vv}, extra_rewrites=transform_rewrite)
+    logp = joint_logprob({y_rv: y_vv}, extra_rewrites=transform_rewrite, sum=True)
     assert_no_rvs(logp)
     logp_fn = aesara.function([y_vv], logp)
 

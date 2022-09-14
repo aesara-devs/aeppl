@@ -608,7 +608,7 @@ def test_switching_process_logp():
     sw_vv = test_dist.clone()
     sw_vv.name = "sw_vv"
 
-    test_logp = joint_logprob({test_dist: sw_vv, states_rv: states_vv}, sum=False)
+    test_logp = at.add(*joint_logprob({test_dist: sw_vv, states_rv: states_vv}))
     obs_vals = np.array([1000, 0, 100, 1000, 0, 100], dtype=np.int64)
     test_logp_val = test_logp.eval({sw_vv: obs_vals, states_vv: states_vals})
 
@@ -642,7 +642,7 @@ def test_switching_process_logp():
 
     test_obs = at.tile(np.arange(4), (10, 1)).astype(np.int64)
 
-    test_logp = joint_logprob({test_dist: test_obs, states_rv: states_vv}, sum=False)
+    test_logp = at.add(*joint_logprob({test_dist: test_obs, states_rv: states_vv}))
 
     exp_logp = np.tile(
         np.array([np.log(0.5)] + [-np.inf] * 3, dtype=aesara.config.floatX), (10, 1)
