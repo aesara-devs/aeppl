@@ -736,6 +736,34 @@ def test_reciprocal_rv_transform(numerator):
     )
 
 
+def test_sqr_transform():
+    x_rv = at.random.normal(0, 1, size=(3,)) ** 2
+    x_rv.name = "x"
+
+    x_vv = x_rv.clone()
+    x_logp_fn = aesara.function([x_vv], joint_logprob({x_rv: x_vv}, sum=False))
+
+    x_test_val = np.r_[0.5, 1, 2.5]
+    assert np.allclose(
+        x_logp_fn(x_test_val),
+        sp.stats.chi2(df=1).logpdf(x_test_val),
+    )
+
+
+def test_sqrt_transform():
+    x_rv = at.sqrt(at.random.chisquare(df=3, size=(3,)))
+    x_rv.name = "x"
+
+    x_vv = x_rv.clone()
+    x_logp_fn = aesara.function([x_vv], joint_logprob({x_rv: x_vv}, sum=False))
+
+    x_test_val = np.r_[0.5, 1, 2.5]
+    assert np.allclose(
+        x_logp_fn(x_test_val),
+        sp.stats.chi(df=3).logpdf(x_test_val),
+    )
+
+
 def test_negated_rv_transform():
     x_rv = -at.random.halfnormal()
     x_rv.name = "x"

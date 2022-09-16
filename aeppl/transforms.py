@@ -10,7 +10,19 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
-from aesara.scalar import Add, Exp, Log, Mul, Neg, Reciprocal, Sub, TrueDiv
+from aesara.scalar import (
+    Add,
+    Exp,
+    Log,
+    Mul,
+    Neg,
+    Pow,
+    Reciprocal,
+    Sqr,
+    Sqrt,
+    Sub,
+    TrueDiv,
+)
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.rewriting.basic import (
@@ -87,8 +99,11 @@ class RVTransform(abc.ABC):
         """Apply the transformation."""
 
     @abc.abstractmethod
-    def backward(self, value: TensorVariable, *inputs: Variable) -> TensorVariable:
-        """Invert the transformation."""
+    def backward(
+        self, value: TensorVariable, *inputs: Variable
+    ) -> Union[TensorVariable, Tuple[TensorVariable, ...]]:
+        """Invert the transformation. Multible values bay be returned when the
+        transformation is not 1-to-1"""
 
     def log_jac_det(self, value: TensorVariable, *inputs) -> TensorVariable:
         """Construct the log of the absolute value of the Jacobian determinant."""
@@ -218,7 +233,7 @@ class TransformValuesRewrite(GraphRewriter):
 class MeasurableTransform(MeasurableElemwise):
     """A placeholder used to specify a log-likelihood for a transformed measurable variable"""
 
-    valid_scalar_types = (Exp, Log, Add, Mul, Reciprocal)
+    valid_scalar_types = (Exp, Log, Add, Mul, Pow)
 
     # Cannot use `transform` as name because it would clash with the property added by
     # the `TransformValuesRewrite`
@@ -249,7 +264,17 @@ def measurable_transform_logprob(op: MeasurableTransform, values, *inputs, **kwa
     # The value variable must still be back-transformed to be on the natural support of
     # the respective measurable input.
     backward_value = op.transform_elemwise.backward(value, *other_inputs)
-    input_logprob = logprob(measurable_input, backward_value, **kwargs)
+
+    # Some transformations, like squaring may produce multiple backward values
+    if isinstance(backward_value, tuple):
+        input_logprob = at.logaddexp(
+            *(
+                logprob(measurable_input, backward_val, **kwargs)
+                for backward_val in backward_value
+            )
+        )
+    else:
+        input_logprob = logprob(measurable_input, backward_value)
 
     jacobian = op.transform_elemwise.log_jac_det(value, *other_inputs)
 
@@ -257,8 +282,29 @@ def measurable_transform_logprob(op: MeasurableTransform, values, *inputs, **kwa
 
 
 @node_rewriter([Elemwise])
-def measurable_div_to_reciprocal_product(fgraph, node):
-    """Convert divisions involving `MeasurableVariable`s to product with reciprocal."""
+def measurable_reciprocal_to_product(fgraph, node):
+    """Convert reciprocal of `MeasurableVariable`s to power."""
+    if isinstance(node.op.scalar_op, Reciprocal):
+        inp = node.inputs[0]
+        if not (inp.owner and isinstance(inp.owner.op, MeasurableVariable)):
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if the variable is unvalued
+        if inp in rv_map_feature.rv_values:
+            return None  # pragma: no cover
+
+        return [at.pow(inp, -1.0)]
+
+
+@node_rewriter([Elemwise])
+def measurable_div_to_power_product(fgraph, node):
+    """Convert divisions involving `MeasurableVariable`s to power product."""
     if isinstance(node.op.scalar_op, TrueDiv):
         measurable_vars = [
             var
@@ -286,10 +332,37 @@ def measurable_div_to_reciprocal_product(fgraph, node):
         # Check if numerator is 1
         try:
             if at.get_scalar_constant_value(numerator) == 1:
-                return [at.reciprocal(denominator)]
+                # We convert the denominator directly to a power transform as this
+                # must be the measurable input
+                return [at.pow(denominator, -1)]
         except NotScalarConstantError:
             pass
         return [at.mul(numerator, at.reciprocal(denominator))]
+
+
+@node_rewriter([Elemwise])
+def measurable_sqrt_sqr_to_power(fgraph, node):
+    """Convert square root or square of `MeasurableVariable`s to power form."""
+    if isinstance(node.op.scalar_op, (Sqr, Sqrt)):
+        inp = node.inputs[0]
+        if not (inp.owner and isinstance(inp.owner.op, MeasurableVariable)):
+            return None
+
+        rv_map_feature: Optional[PreserveRVMappings] = getattr(
+            fgraph, "preserve_rv_mappings", None
+        )
+        if rv_map_feature is None:
+            return None  # pragma: no cover
+
+        # Only apply this rewrite if the variable is unvalued
+        if inp in rv_map_feature.rv_values:
+            return None  # pragma: no cover
+
+        if isinstance(node.op.scalar_op, Sqr):
+            return [at.pow(inp, 2)]
+
+        if isinstance(node.op.scalar_op, Sqrt):
+            return [at.pow(inp, 1 / 2)]
 
 
 @node_rewriter([Elemwise])
@@ -406,8 +479,18 @@ def find_measurable_transforms(
         transform = ExpTransform()
     elif isinstance(scalar_op, Log):
         transform = LogTransform()
-    elif isinstance(scalar_op, Reciprocal):
-        transform = ReciprocalTransform()
+    elif isinstance(scalar_op, Pow):
+        # We only allow for the base to be measurable
+        if measurable_input_idx != 0:
+            return None
+        try:
+            (power,) = other_inputs
+            power = at.get_scalar_constant_value(power)
+        # Power needs to be a constant
+        except NotScalarConstantError:
+            return None
+        transform_inputs = (measurable_input, power)
+        transform = PowerTransform(power=power)
     elif isinstance(scalar_op, Add):
         transform_inputs = (measurable_input, at.add(*other_inputs))
         transform = LocTransform(
@@ -431,8 +514,16 @@ def find_measurable_transforms(
 
 
 measurable_ir_rewrites_db.register(
-    "measurable_div_to_reciprocal_product",
-    measurable_div_to_reciprocal_product,
+    "measurable_div_to_power_product",
+    measurable_div_to_power_product,
+    -5,
+    "basic",
+    "transform",
+)
+
+measurable_ir_rewrites_db.register(
+    "measurable_sqrt_sqr_to_power",
+    measurable_sqrt_sqr_to_power,
     -5,
     "basic",
     "transform",
@@ -526,17 +617,28 @@ class ExpTransform(RVTransform):
         return -at.log(value)
 
 
-class ReciprocalTransform(RVTransform):
-    name = "reciprocal"
+class PowerTransform(RVTransform):
+    name = "power"
+
+    def __init__(self, power=None):
+        self.power = power
+        super().__init__()
 
     def forward(self, value, *inputs):
-        return at.reciprocal(value)
+        at.power(value, self.power)
 
     def backward(self, value, *inputs):
-        return at.reciprocal(value)
+        backward_value = at.power(value, at.reciprocal(self.power))
+
+        # In this case the transform is not 1-to-1
+        if (self.power > 1) and (self.power % 2 == 0):
+            return -backward_value, backward_value
+
+        return backward_value
 
     def log_jac_det(self, value, *inputs):
-        return -2 * at.log(value)
+        inv_power = at.reciprocal(self.power)
+        return at.log(at.abs(inv_power)) + (inv_power - 1) * at.log(value)
 
 
 class IntervalTransform(RVTransform):
