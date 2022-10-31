@@ -6,7 +6,7 @@ from aesara import Mode
 from aesara.raise_op import assert_op
 from aesara.scan.utils import ScanArgs
 
-from aeppl.joint_logprob import factorized_joint_logprob, joint_logprob
+from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.logprob import logprob
 from aeppl.scan import construct_scan, convert_outer_out_to_in, get_random_outer_outputs
 from tests.utils import assert_no_rvs
@@ -378,7 +378,7 @@ def test_initial_values():
     s_1T_vv = S_1T_rv.clone()
     s_1T_vv.name = "s_1T"
 
-    logp_parts = factorized_joint_logprob({S_1T_rv: s_1T_vv, S_0_rv: s_0_vv})
+    logp_parts = conditional_logprob({S_1T_rv: s_1T_vv, S_0_rv: s_0_vv})
 
     s_0_val = 0
     s_1T_val = np.array([1, 0, 1, 0, 1, 1, 0, 1, 0, 1])

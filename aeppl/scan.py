@@ -18,7 +18,7 @@ from aesara.tensor.var import TensorVariable
 from aesara.updates import OrderedUpdates
 
 from aeppl.abstract import MeasurableVariable, _get_measurable_outputs
-from aeppl.joint_logprob import factorized_joint_logprob
+from aeppl.joint_logprob import conditional_logprob
 from aeppl.logprob import _logprob
 from aeppl.rewriting import (
     inc_subtensor_ops,
@@ -268,7 +268,7 @@ def logprob_ScanRV(op, values, *inputs, name=None, **kwargs):
         value_map: Dict[TensorVariable, TensorVariable]
     ) -> TensorVariable:
         """Create a log-likelihood inner-output for a `Scan`."""
-        logp_parts = factorized_joint_logprob(value_map, warn_missing_rvs=False)
+        logp_parts = conditional_logprob(value_map, warn_missing_rvs=False)
         return logp_parts.values()
 
     logp_scan_args = convert_outer_out_to_in(

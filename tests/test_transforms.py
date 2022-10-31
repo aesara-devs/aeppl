@@ -8,7 +8,7 @@ from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
 from numdifftools import Jacobian
 
-from aeppl.joint_logprob import factorized_joint_logprob, joint_logprob
+from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.transforms import (
     DEFAULT_TRANSFORM,
     ChainedTransform,
@@ -449,7 +449,7 @@ def test_original_values_output_dict():
     p_vv = p_rv.clone()
 
     tr = TransformValuesRewrite({p_vv: DEFAULT_TRANSFORM})
-    logp_dict = factorized_joint_logprob({p_rv: p_vv}, extra_rewrites=tr)
+    logp_dict = conditional_logprob({p_rv: p_vv}, extra_rewrites=tr)
 
     assert p_vv in logp_dict
 
@@ -564,7 +564,7 @@ def test_exp_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = conditional_logprob({y_rv: y_vv})[y_vv]
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -580,7 +580,7 @@ def test_log_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = conditional_logprob({y_rv: y_vv})[y_vv]
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -605,7 +605,7 @@ def test_loc_transform_rv(rv_size, loc_type):
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = conditional_logprob({y_rv: y_vv})[y_vv]
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, y_vv], logp)
 
@@ -633,7 +633,7 @@ def test_scale_transform_rv(rv_size, scale_type):
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv}, sum=False)
+    logp = conditional_logprob({y_rv: y_vv})[y_vv]
     assert_no_rvs(logp)
     logp_fn = aesara.function([scale, y_vv], logp)
 
