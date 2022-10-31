@@ -7,9 +7,8 @@ import scipy.stats as sp
 from aesara.compile.mode import get_default_mode
 from aesara.graph.basic import equal_computations
 
-from aeppl import joint_logprob
 from aeppl.dists import dirac_delta, discrete_markov_chain, switching_process
-from aeppl.joint_logprob import factorized_joint_logprob
+from aeppl.joint_logprob import conditional_logprob
 from aeppl.logprob import logprob
 from tests.utils import simulate_poiszero_hmm
 
@@ -423,9 +422,7 @@ def test_discrete_Markov_chain_factorized_logp():
     dmc_rv, _ = discrete_markov_chain(Gammas, gamma_0)
     dmc_vv = dmc_rv.clone()
 
-    logps = factorized_joint_logprob({dmc_rv: dmc_vv})
-
-    dmc_logp = logps[dmc_vv]
+    dmc_logp = conditional_logprob({dmc_rv: dmc_vv})[dmc_vv]
 
     ref_dmc_logp = logprob(dmc_rv, dmc_vv)
 
@@ -608,7 +605,8 @@ def test_switching_process_logp():
     sw_vv = test_dist.clone()
     sw_vv.name = "sw_vv"
 
-    test_logp = joint_logprob({test_dist: sw_vv, states_rv: states_vv}, sum=False)
+    test_logps = conditional_logprob({test_dist: sw_vv, states_rv: states_vv})
+    test_logp = at.add(*test_logps.values())
     obs_vals = np.array([1000, 0, 100, 1000, 0, 100], dtype=np.int64)
     test_logp_val = test_logp.eval({sw_vv: obs_vals, states_vv: states_vals})
 
@@ -642,7 +640,8 @@ def test_switching_process_logp():
 
     test_obs = at.tile(np.arange(4), (10, 1)).astype(np.int64)
 
-    test_logp = joint_logprob({test_dist: test_obs, states_rv: states_vv}, sum=False)
+    test_logps = conditional_logprob({test_dist: test_obs, states_rv: states_vv})
+    test_logp = at.add(*test_logps.values())
 
     exp_logp = np.tile(
         np.array([np.log(0.5)] + [-np.inf] * 3, dtype=aesara.config.floatX), (10, 1)

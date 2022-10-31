@@ -8,7 +8,7 @@ from aesara.tensor.random.basic import CategoricalRV
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import as_index_constant
 
-from aeppl.joint_logprob import factorized_joint_logprob, joint_logprob
+from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.mixture import MixtureRV, expand_indices
 from aeppl.rewriting import construct_ir_fgraph
 from tests.test_logprob import scipy_logprob
@@ -51,7 +51,7 @@ def test_mixture_basics():
     x_vv.name = "x"
 
     with pytest.raises(RuntimeError, match="could not be derived: {m}"):
-        factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv, X_rv: x_vv})
+        conditional_logprob({M_rv: m_vv, I_rv: i_vv, X_rv: x_vv})
 
     with pytest.raises(NotImplementedError):
         axis_at = at.lscalar("axis")
@@ -95,7 +95,8 @@ def test_compute_test_value(op_constructor):
 
     del M_rv.tag.test_value
 
-    M_logp = joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    M_logps = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
+    M_logp = at.add(*M_logps.values())
 
     assert isinstance(M_logp.tag.test_value, np.ndarray)
 
@@ -137,7 +138,8 @@ def test_hetero_mixture_binomial(p_val, size):
     m_vv = M_rv.clone()
     m_vv.name = "m"
 
-    M_logp = joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    M_logps = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
+    M_logp = at.add(*M_logps.values())
 
     M_logp_fn = aesara.function([p_at, m_vv, i_vv], M_logp)
 
@@ -410,7 +412,7 @@ def test_hetero_mixture_categorical(
     m_vv = M_rv.clone()
     m_vv.name = "m"
 
-    logp_parts = factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv}, sum=False)
+    logp_parts = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
 
     I_logp_fn = aesara.function([p_at, i_vv], logp_parts[i_vv])
     M_logp_fn = aesara.function([m_vv, i_vv], logp_parts[m_vv])
@@ -707,7 +709,7 @@ def test_mixture_with_DiracDelta():
     m_vv = M_rv.clone()
     m_vv.name = "m"
 
-    logp_res = factorized_joint_logprob({M_rv: m_vv, I_rv: i_vv})
+    logp_res = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
 
     assert m_vv in logp_res
 

@@ -5,7 +5,7 @@ import pytest
 import scipy as sp
 import scipy.stats as st
 
-from aeppl import factorized_joint_logprob, joint_logprob
+from aeppl import conditional_logprob, joint_logprob
 from aeppl.transforms import LogTransform, TransformValuesRewrite
 from tests.utils import assert_no_rvs
 
@@ -80,7 +80,7 @@ def test_useless_clip():
 
     cens_x_vv = cens_x_rv.clone()
 
-    logp = joint_logprob({cens_x_rv: cens_x_vv}, sum=False)
+    logp = conditional_logprob({cens_x_rv: cens_x_vv})[cens_x_vv]
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([cens_x_vv], logp)
@@ -96,7 +96,8 @@ def test_random_clip():
 
     lb_vv = lb_rv.clone()
     cens_x_vv = cens_x_rv.clone()
-    logp = joint_logprob({cens_x_rv: cens_x_vv, lb_rv: lb_vv}, sum=False)
+    logps = conditional_logprob({cens_x_rv: cens_x_vv, lb_rv: lb_vv})
+    logp = at.add(*logps.values())
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([lb_vv, cens_x_vv], logp)
@@ -138,7 +139,7 @@ def test_fail_base_and_clip_have_values():
     x_vv = x_rv.clone()
     cens_x_vv = cens_x_rv.clone()
     with pytest.raises(RuntimeError, match="could not be derived: {cens_x}"):
-        factorized_joint_logprob({cens_x_rv: cens_x_vv, x_rv: x_vv})
+        conditional_logprob({cens_x_rv: cens_x_vv, x_rv: x_vv})
 
 
 def test_fail_multiple_clip_single_base():
@@ -152,7 +153,7 @@ def test_fail_multiple_clip_single_base():
     cens_vv1 = cens_rv1.clone()
     cens_vv2 = cens_rv2.clone()
     with pytest.raises(RuntimeError, match="could not be derived: {cens2}"):
-        factorized_joint_logprob({cens_rv1: cens_vv1, cens_rv2: cens_vv2})
+        conditional_logprob({cens_rv1: cens_vv1, cens_rv2: cens_vv2})
 
 
 def test_deterministic_clipping():
@@ -201,7 +202,7 @@ def test_rounding(rounding_op):
     xr.name = "xr"
 
     xr_vv = xr.clone()
-    logp = joint_logprob({xr: xr_vv}, sum=False)
+    logp = conditional_logprob({xr: xr_vv})[xr_vv]
     assert logp is not None
 
     x_sp = st.norm(loc, scale)

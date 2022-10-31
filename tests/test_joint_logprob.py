@@ -15,7 +15,7 @@ from aesara.tensor.subtensor import (
     Subtensor,
 )
 
-from aeppl.joint_logprob import factorized_joint_logprob, joint_logprob
+from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.logprob import logprob
 from aeppl.utils import rvs_to_value_vars, walk_model
 from tests.utils import assert_no_rvs
@@ -27,7 +27,7 @@ def test_joint_logprob_basic():
     a.name = "a"
     a_value_var = a.clone()
 
-    a_logp = joint_logprob({a: a_value_var}, sum=False)
+    a_logp = conditional_logprob({a: a_value_var})[a_value_var]
     a_logp_exp = logprob(a, a_value_var)
 
     assert equal_computations([a_logp], [a_logp_exp])
@@ -39,7 +39,8 @@ def test_joint_logprob_basic():
     sigma_value_var = sigma.clone()
     y_value_var = Y.clone()
 
-    total_ll = joint_logprob({Y: y_value_var, sigma: sigma_value_var}, sum=False)
+    lls = conditional_logprob({Y: y_value_var, sigma: sigma_value_var})
+    total_ll = lls[sigma_value_var] + lls[y_value_var]
 
     # We need to replace the reference to `sigma` in `Y` with its value
     # variable
@@ -82,7 +83,8 @@ def test_joint_logprob_multi_obs():
     a_val = a.clone()
     b_val = b.clone()
 
-    logp = joint_logprob({a: a_val, b: b_val}, sum=False)
+    logps = conditional_logprob({a: a_val, b: b_val})
+    logp = logps[a_val] + logps[b_val]
     logp_exp = logprob(a, a_val) + logprob(b, b_val)
 
     assert equal_computations([logp], [logp_exp])
@@ -153,7 +155,7 @@ def test_joint_logprob_incsubtensor(indices, size):
         Y_rv.owner.op, (IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1)
     )
 
-    Y_rv_logp = joint_logprob({Y_rv: y_value_var}, sum=False)
+    Y_rv_logp = conditional_logprob({Y_rv: y_value_var})[y_value_var]
 
     obs_logps = Y_rv_logp.eval({y_value_var: y_val})
 
@@ -174,7 +176,7 @@ def test_incsubtensor_original_values_output_dict():
     rv = at.set_subtensor(base_rv[0], 5)
     vv = rv.clone()
 
-    logp_dict = factorized_joint_logprob({rv: vv})
+    logp_dict = conditional_logprob({rv: vv})
     assert vv in logp_dict
 
 
@@ -208,7 +210,8 @@ def test_joint_logprob_subtensor():
     I_value_var = I_rv.type()
     I_value_var.name = "I_value"
 
-    A_idx_logp = joint_logprob({A_idx: A_idx_value_var, I_rv: I_value_var}, sum=False)
+    A_idx_logps = conditional_logprob({A_idx: A_idx_value_var, I_rv: I_value_var})
+    A_idx_logp = at.add(*A_idx_logps.values())
 
     logp_vals_fn = aesara.function([A_idx_value_var, I_value_var], A_idx_logp)
 
@@ -261,11 +264,11 @@ def test_warn_random_not_found():
     y_vv = y_rv.clone()
 
     with pytest.warns(UserWarning):
-        factorized_joint_logprob({y_rv: y_vv})
+        conditional_logprob({y_rv: y_vv})
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        factorized_joint_logprob({y_rv: y_vv}, warn_missing_rvs=False)
+        conditional_logprob({y_rv: y_vv}, warn_missing_rvs=False)
 
 
 def test_multiple_rvs_to_same_value_raises():
@@ -274,6 +277,6 @@ def test_multiple_rvs_to_same_value_raises():
     x = x_rv1.type()
     x.name = "x"
 
-    msg = "More than one logprob factor was assigned to the value var x"
+    msg = "More than one logprob factor was assigned to the value variable x"
     with pytest.raises(ValueError, match=msg):
         joint_logprob({x_rv1: x, x_rv2: x})
