@@ -27,7 +27,7 @@ def test_joint_logprob_basic():
     a.name = "a"
     a_value_var = a.clone()
 
-    a_logp = conditional_logprob({a: a_value_var})[a_value_var]
+    a_logp = conditional_logprob({a: a_value_var})[a]
     a_logp_exp = logprob(a, a_value_var)
 
     assert equal_computations([a_logp], [a_logp_exp])
@@ -40,7 +40,7 @@ def test_joint_logprob_basic():
     y_value_var = Y.clone()
 
     lls = conditional_logprob({Y: y_value_var, sigma: sigma_value_var})
-    total_ll = lls[sigma_value_var] + lls[y_value_var]
+    total_ll = lls[sigma] + lls[Y]
 
     # We need to replace the reference to `sigma` in `Y` with its value
     # variable
@@ -84,7 +84,7 @@ def test_joint_logprob_multi_obs():
     b_val = b.clone()
 
     logps = conditional_logprob({a: a_val, b: b_val})
-    logp = logps[a_val] + logps[b_val]
+    logp = logps[a] + logps[b]
     logp_exp = logprob(a, a_val) + logprob(b, b_val)
 
     assert equal_computations([logp], [logp_exp])
@@ -155,7 +155,7 @@ def test_joint_logprob_incsubtensor(indices, size):
         Y_rv.owner.op, (IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1)
     )
 
-    Y_rv_logp = conditional_logprob({Y_rv: y_value_var})[y_value_var]
+    Y_rv_logp = conditional_logprob({Y_rv: y_value_var})[Y_rv]
 
     obs_logps = Y_rv_logp.eval({y_value_var: y_val})
 
@@ -177,7 +177,7 @@ def test_incsubtensor_original_values_output_dict():
     vv = rv.clone()
 
     logp_dict = conditional_logprob({rv: vv})
-    assert vv in logp_dict
+    assert rv in logp_dict
 
 
 def test_joint_logprob_subtensor():

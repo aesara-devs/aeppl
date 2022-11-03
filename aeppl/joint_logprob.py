@@ -88,6 +88,7 @@ def conditional_logprob(
     from the respective `RandomVariable`.
 
     """
+    vv_to_original_rvs = {vv: rv for rv, vv in rv_values.items()}
     fgraph, rv_values, _ = construct_ir_fgraph(rv_values, ir_rewriter=ir_rewriter)
 
     if extra_rewrites is not None:
@@ -169,16 +170,17 @@ def conditional_logprob(
         for q_value_var, q_logprob_var in zip(q_value_vars, q_logprob_vars):
 
             q_value_var = original_values[q_value_var]
+            q_rv = vv_to_original_rvs[q_value_var]
 
-            if q_value_var.name:
-                q_logprob_var.name = f"{q_value_var.name}_logprob"
+            if q_rv.name:
+                q_logprob_var.name = f"{q_rv.name}_logprob"
 
-            if q_value_var in logprob_vars:
+            if q_rv in logprob_vars:
                 raise ValueError(
-                    f"More than one logprob factor was assigned to the value variable {q_value_var}"
+                    f"More than one logprob factor was assigned to the random variable {q_rv}"
                 )
 
-            logprob_vars[q_value_var] = q_logprob_var
+            logprob_vars[q_rv] = q_logprob_var
 
         # Recompute test values for the changes introduced by the
         # replacements above.
@@ -186,10 +188,10 @@ def conditional_logprob(
             for node in io_toposort(graph_inputs(q_logprob_vars), q_logprob_vars):
                 compute_test_value(node)
 
-    missing_value_terms = set(original_values.values()) - set(logprob_vars.keys())
+    missing_value_terms = set(vv_to_original_rvs.values()) - set(logprob_vars.keys())
     if missing_value_terms:
         raise RuntimeError(
-            f"The logprob terms of the following value variables could not be derived: {missing_value_terms}"
+            f"The logprob terms of the following random variables could not be derived: {missing_value_terms}"
         )
 
     return logprob_vars

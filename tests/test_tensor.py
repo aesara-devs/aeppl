@@ -36,12 +36,12 @@ def test_naive_bcast_rv_lift_valued_var():
     x_vv = x_rv.clone()
     y_vv = y_rv.clone()
     logp_map = conditional_logprob({x_rv: x_vv, y_rv: y_vv})
-    assert x_vv in logp_map
-    assert y_vv in logp_map
+    assert x_rv in logp_map
+    assert y_rv in logp_map
     assert len(logp_map) == 2
-    assert np.allclose(logp_map[x_vv].eval({x_vv: 0}), st.norm(0).logpdf(0))
+    assert np.allclose(logp_map[x_rv].eval({x_vv: 0}), st.norm(0).logpdf(0))
     assert np.allclose(
-        logp_map[y_vv].eval({x_vv: 0, y_vv: [0, 0]}), st.norm(0).logpdf([0, 0])
+        logp_map[y_rv].eval({x_vv: 0, y_vv: [0, 0]}), st.norm(0).logpdf([0, 0])
     )
 
 
@@ -60,7 +60,7 @@ def test_measurable_make_vector():
     ref_logp = joint_logprob(
         {base1_rv: base1_vv, base2_rv: base2_vv, base3_rv: base3_vv}
     )
-    make_vector_logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    make_vector_logp = conditional_logprob({y_rv: y_vv})[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -108,7 +108,7 @@ def test_measurable_join_univariate(size1, size2, axis, concatenate):
         base_logps = at.concatenate(base_logps, axis=axis)
     else:
         base_logps = at.stack(base_logps, axis=axis)
-    y_logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    y_logp = conditional_logprob({y_rv: y_vv})[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -183,7 +183,7 @@ def test_measurable_join_multivariate(
     else:
         axis_norm = np.core.numeric.normalize_axis_index(axis, base1_rv.ndim + 1)
         base_logps = at.stack(base_logps, axis=axis_norm - 1)
-    y_logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    y_logp = conditional_logprob({y_rv: y_vv})[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -245,7 +245,7 @@ def test_measurable_dimshuffle(ds_order, multivariate):
     else:
         logp_ds_order = ds_order
 
-    ref_logp = conditional_logprob({base_rv: base_vv})[base_vv].dimshuffle(
+    ref_logp = conditional_logprob({base_rv: base_vv})[base_rv].dimshuffle(
         logp_ds_order
     )
 
@@ -253,7 +253,7 @@ def test_measurable_dimshuffle(ds_order, multivariate):
     ir_rewriter = logprob_rewrites_db.query(
         RewriteDatabaseQuery(include=["basic"]).excluding("dimshuffle_lift")
     )
-    ds_logp = conditional_logprob({ds_rv: ds_vv}, ir_rewriter=ir_rewriter)[ds_vv]
+    ds_logp = conditional_logprob({ds_rv: ds_vv}, ir_rewriter=ir_rewriter)[ds_rv]
     assert ds_logp is not None
 
     ref_logp_fn = aesara.function([base_vv], ref_logp)

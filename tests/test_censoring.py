@@ -80,7 +80,7 @@ def test_useless_clip():
 
     cens_x_vv = cens_x_rv.clone()
 
-    logp = conditional_logprob({cens_x_rv: cens_x_vv})[cens_x_vv]
+    logp = conditional_logprob({cens_x_rv: cens_x_vv})[cens_x_rv]
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([cens_x_vv], logp)
@@ -202,7 +202,7 @@ def test_rounding(rounding_op):
     xr.name = "xr"
 
     xr_vv = xr.clone()
-    logp = conditional_logprob({xr: xr_vv})[xr_vv]
+    logp = conditional_logprob({xr: xr_vv})[xr]
     assert logp is not None
 
     x_sp = st.norm(loc, scale)

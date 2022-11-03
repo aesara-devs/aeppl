@@ -414,8 +414,8 @@ def test_hetero_mixture_categorical(
 
     logp_parts = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
 
-    I_logp_fn = aesara.function([p_at, i_vv], logp_parts[i_vv])
-    M_logp_fn = aesara.function([m_vv, i_vv], logp_parts[m_vv])
+    I_logp_fn = aesara.function([p_at, i_vv], logp_parts[I_rv])
+    M_logp_fn = aesara.function([m_vv, i_vv], logp_parts[M_rv])
 
     assert_no_rvs(I_logp_fn.maker.fgraph.outputs[0])
     assert_no_rvs(M_logp_fn.maker.fgraph.outputs[0])
@@ -711,7 +711,7 @@ def test_mixture_with_DiracDelta():
 
     logp_res = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
 
-    assert m_vv in logp_res
+    assert M_rv in logp_res
 
 
 def test_switch_mixture():
