@@ -884,6 +884,34 @@ def test_hypergeometric_logprob(dist_params, obs, size, error):
 
 
 @pytest.mark.parametrize(
+    "dist_params, obs, size, error",
+    [
+        ((1, 0, 2), np.array([-10, 0, 10], dtype=np.float32), (), False),
+        ((1, 0, 2), np.array([-10, 0, 10], dtype=np.float32), (3, 2), False),
+        (
+            (np.array([10, 5, 3], dtype=np.int64), 1, 2),
+            np.array([-1, 1, 84], dtype=np.int64),
+            (),
+            False,
+        ),
+    ],
+)
+def test_studentt_logprob(dist_params, obs, size, error):
+    dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
+    dist_params = dict(zip(dist_params_at, dist_params))
+
+    x = at.random.t(*dist_params_at, size=size_at)
+
+    cm = contextlib.suppress() if not error else pytest.raises(AssertionError)
+
+    def scipy_logprob(obs, df, loc, scale):
+        return stats.t.logpdf(obs, df, loc=loc, scale=scale)
+
+    with cm:
+        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+
+
+@pytest.mark.parametrize(
     "dist_params, obs, size, exc_type, chk_bcast",
     [
         (
