@@ -534,6 +534,20 @@ def hypergeometric_logprob(op, values, *inputs, **kwargs):
     return res
 
 
+@_logprob.register(arb.StudentTRV)
+def studentt_logprob(op, values, *inputs, **kwargs):
+    (value,) = values
+    df, loc, scale = inputs[3:]
+    res = (
+        at.gammaln((df + 1.0) / 2.0)
+        - at.gammaln(df / 2.0)
+        - 0.5 * at.log(np.pi * df * scale**2)
+        - (df + 1.0) / 2.0 * at.log1p(((value - loc) / scale) ** 2 / df)
+    )
+    res = CheckParameterValue("scale >= 0")(res, at.all(at.ge(scale, 0.0)))
+    return res
+
+
 @_logprob.register(arb.CategoricalRV)
 def categorical_logprob(op, values, *inputs, **kwargs):
     (value,) = values
