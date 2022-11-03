@@ -123,7 +123,7 @@ def test_double_log_transform_rv():
     y_rv.name = "y"
 
     y_vv = y_rv.clone()
-    logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    logp = conditional_logprob({y_rv: y_vv})[y_rv]
     logp_fn = aesara.function([y_vv], logp)
 
     log_log_y_val = np.asarray(0.5)
@@ -144,7 +144,7 @@ def test_affine_transform_rv():
     y_rv.name = "y"
     y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    logp = conditional_logprob({y_rv: y_vv})[y_rv]
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, scale, y_vv], logp)
 
@@ -166,7 +166,7 @@ def test_affine_log_transform_rv():
 
     y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_vv]
+    logp = conditional_logprob({y_rv: y_vv})[y_rv]
     logp_fn = aesara.function([a, b, y_vv], logp)
 
     a_val = -1.5

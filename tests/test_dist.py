@@ -422,7 +422,7 @@ def test_discrete_Markov_chain_factorized_logp():
     dmc_rv, _ = discrete_markov_chain(Gammas, gamma_0)
     dmc_vv = dmc_rv.clone()
 
-    dmc_logp = conditional_logprob({dmc_rv: dmc_vv})[dmc_vv]
+    dmc_logp = conditional_logprob({dmc_rv: dmc_vv})[dmc_rv]
 
     ref_dmc_logp = logprob(dmc_rv, dmc_vv)
 
