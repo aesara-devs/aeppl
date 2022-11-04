@@ -422,7 +422,8 @@ def test_discrete_Markov_chain_factorized_logp():
     dmc_rv, _ = discrete_markov_chain(Gammas, gamma_0)
     dmc_vv = dmc_rv.clone()
 
-    dmc_logp = conditional_logprob({dmc_rv: dmc_vv})[dmc_rv]
+    logps, (dmc_vv,) = conditional_logprob(dmc_rv)
+    dmc_logp = logps[dmc_rv]
 
     ref_dmc_logp = logprob(dmc_rv, dmc_vv)
 
@@ -605,7 +606,7 @@ def test_switching_process_logp():
     sw_vv = test_dist.clone()
     sw_vv.name = "sw_vv"
 
-    test_logps = conditional_logprob({test_dist: sw_vv, states_rv: states_vv})
+    test_logps, (sw_vv, states_vv) = conditional_logprob(test_dist, states_rv)
     test_logp = at.add(*test_logps.values())
     obs_vals = np.array([1000, 0, 100, 1000, 0, 100], dtype=np.int64)
     test_logp_val = test_logp.eval({sw_vv: obs_vals, states_vv: states_vals})
@@ -640,7 +641,9 @@ def test_switching_process_logp():
 
     test_obs = at.tile(np.arange(4), (10, 1)).astype(np.int64)
 
-    test_logps = conditional_logprob({test_dist: test_obs, states_rv: states_vv})
+    test_logps, (states_vv,) = conditional_logprob(
+        states_rv, realized={test_dist: test_obs}
+    )
     test_logp = at.add(*test_logps.values())
 
     exp_logp = np.tile(

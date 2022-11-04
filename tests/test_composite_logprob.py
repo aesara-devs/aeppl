@@ -20,12 +20,7 @@ def test_scalar_clipped_mixture():
     mix = comps[idxs]
     mix.name = "mix"
 
-    mix_vv = mix.clone()
-    mix_vv.name = "mix_val"
-    idxs_vv = idxs.clone()
-    idxs_vv.name = "idxs_val"
-
-    logp = joint_logprob({idxs: idxs_vv, mix: mix_vv})
+    logp, (idxs_vv, mix_vv) = joint_logprob(idxs, mix)
 
     logp_fn = aesara.function([idxs_vv, mix_vv], logp)
     assert logp_fn(0, 0.4) == -np.inf
@@ -57,13 +52,8 @@ def test_nested_scalar_mixtures():
     mix12 = comps12[idxs12]
     mix12.name = "mix12"
 
-    idxs1_vv = idxs1.clone()
-    idxs2_vv = idxs2.clone()
-    idxs12_vv = idxs12.clone()
-    mix12_vv = mix12.clone()
-
-    logp = joint_logprob(
-        {idxs1: idxs1_vv, idxs2: idxs2_vv, idxs12: idxs12_vv, mix12: mix12_vv}
+    logp, (idxs1_vv, idxs2_vv, idxs12_vv, mix12_vv) = joint_logprob(
+        idxs1, idxs2, idxs12, mix12
     )
     logp_fn = aesara.function([idxs1_vv, idxs2_vv, idxs12_vv, mix12_vv], logp)
 
@@ -110,7 +100,7 @@ def test_shifted_cumsum():
     y.name = "y"
 
     y_vv = y.clone()
-    logp = joint_logprob({y: y_vv})
+    logp, (y_vv,) = joint_logprob(y)
     assert np.isclose(
         logp.eval({y_vv: np.arange(5) + 1 + 5}),
         st.norm.logpdf(1) * 5,
@@ -122,9 +112,8 @@ def test_double_log_transform_rv():
     y_rv = at.log(at.log(base_rv))
     y_rv.name = "y"
 
-    y_vv = y_rv.clone()
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
-    logp_fn = aesara.function([y_vv], logp)
+    logp, (y_vv,) = conditional_logprob(y_rv)
+    logp_fn = aesara.function([y_vv], logp[y_rv])
 
     log_log_y_val = np.asarray(0.5)
     log_y_val = np.exp(log_log_y_val)
@@ -142,11 +131,10 @@ def test_affine_transform_rv():
 
     y_rv = loc + at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
     y_rv.name = "y"
-    y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
-    assert_no_rvs(logp)
-    logp_fn = aesara.function([loc, scale, y_vv], logp)
+    logp, (y_vv,) = conditional_logprob(y_rv)
+    assert_no_rvs(logp[y_rv])
+    logp_fn = aesara.function([loc, scale, y_vv], logp[y_rv])
 
     loc_test_val = 4.0
     scale_test_val = np.full(rv_size, 0.5)
@@ -166,7 +154,8 @@ def test_affine_log_transform_rv():
 
     y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    logp = logps[y_rv]
     logp_fn = aesara.function([a, b, y_vv], logp)
 
     a_val = -1.5
