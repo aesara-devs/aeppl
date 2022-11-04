@@ -1,6 +1,6 @@
 import warnings
 from collections import deque
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import aesara.tensor as at
 from aesara import config
@@ -16,17 +16,18 @@ from aeppl.utils import rvs_to_value_vars
 
 
 def conditional_logprob(
-    rv_values: Dict[TensorVariable, TensorVariable],
+    *random_variables: TensorVariable,
+    realized: Dict[TensorVariable, TensorVariable] = {},
     warn_missing_rvs: bool = True,
     ir_rewriter: Optional[GraphRewriter] = None,
     extra_rewrites: Optional[Union[GraphRewriter, NodeRewriter]] = None,
     **kwargs,
-) -> Dict[TensorVariable, TensorVariable]:
-    r"""Create a map between variables and their conditional log-probabilities.
+) -> Tuple[Dict[TensorVariable, TensorVariable], List[TensorVariable]]:
+    r"""Create a map between random variables and their conditional log-probabilities.
 
-    The `rvs` list implicitly defines a joint probability, that factorizes
-    according to the graphical model represented by the Aesara model the
-    `RandomVariable`s belong to.
+    The list of measurable variables implicitly defines a joint probability that
+    factorizes according to the graphical model implemented by the Aesara model
+    these variables belong to.
 
     For example, consider the following
 
@@ -34,8 +35,8 @@ def conditional_logprob(
 
         import aesara.tensor as at
 
-        sigma2_rv = at.random.invgamma(0.5, 0.5)
-        Y_rv = at.random.normal(0, at.sqrt(sigma2_rv))
+        sigma2_rv = at.random.invgamma(0.5, 0.5, name="sigma2")
+        Y_rv = at.random.normal(0, at.sqrt(sigma2_rv), name="Y")
 
     This graph for ``Y_rv`` is equivalent to the following hierarchical model:
 
@@ -51,9 +52,9 @@ def conditional_logprob(
     :math:`Y`'s respective conditional log-probabilities, :math:`\log P(\sigma^2 = s)`
     and :math:`\log p(Y = y | \sigma^2 = s)`.
 
-    `conditional_logprob` generates the value variables that correspond to the
-    measurable variables for which it produces a conditional log-probability
-    graph and returns them along with the graphs:
+    To build the log-probability graphs, `conditional_logprob` must generate
+    value variables associated with each input variable. They are returned along
+    with the graphs:
 
     .. code-block:: python
 
@@ -62,16 +63,18 @@ def conditional_logprob(
         sigma2_rv = at.random.invgamma(0.5, 0.5)
         Y_rv = at.random.normal(0, at.sqrt(sigma2_rv))
 
-        logprobs = conditional_logprob(Y_rv, sigma2_rv)
+        logprobs, value_variables = conditional_logprob(Y_rv, sigma2_rv)
         # print(logprobs.keys())
-        # [sigma2_vv, Y_vv]
+        # [Y, sigma2]
+        # print(value_variables)
+        # [Y_vv, sigma2_vv]
 
 
     Parameters
     ==========
-    rv_values
-        A ``dict`` that maps measurable variables (e.g. `RandomVariable`s) to
-        symbolic `Variable`\s that represent their values.
+    random_variables
+        A ``list`` of  random variables for which we need to return a
+        conditional log-probability graph.
     warn_missing_rvs
         When ``True``, issue a warning when a `RandomVariable` is found in
         the graph and doesn't have a corresponding value variable specified in
@@ -84,11 +87,27 @@ def conditional_logprob(
 
     Returns
     =======
-    A ``dict`` that maps each value variable to the log-probability factor derived
-    from the respective `RandomVariable`.
+    A ``dict`` that maps each random variable to the derived log-probability
+    factor, and a list of the created valued variables in the same order as the
+    order in which their corresponding random variables were passed as
+    arguments.
 
     """
+
+    # Create value variables by cloning the input measurable variables
+    original_rv_values = {}
+    for rv in random_variables:
+        vv = rv.clone()
+        if rv.name:
+            vv.name = f"{rv.name}_vv"
+        original_rv_values[rv] = vv
+
+    # Value variables are not cloned when constructing the conditional log-proprobability
+    # graphs. We can thus use them to recover the original random variables to index the
+    # maps to the logprob graphs and value variables before returning them.
+    rv_values = {**original_rv_values, **realized}
     vv_to_original_rvs = {vv: rv for rv, vv in rv_values.items()}
+
     fgraph, rv_values, _ = construct_ir_fgraph(rv_values, ir_rewriter=ir_rewriter)
 
     if extra_rewrites is not None:
@@ -194,30 +213,45 @@ def conditional_logprob(
             f"The logprob terms of the following random variables could not be derived: {missing_value_terms}"
         )
 
-    return logprob_vars
+    return logprob_vars, list(original_rv_values.values())
 
 
 def joint_logprob(
-    rv_values: Dict[TensorVariable, TensorVariable], *args, **kwargs
-) -> Optional[TensorVariable]:
+    *random_variables: List[TensorVariable],
+    realized: Dict[TensorVariable, TensorVariable] = {},
+    **kwargs,
+) -> Optional[Tuple[TensorVariable, List[TensorVariable]]]:
     """Create a graph representing the joint log-probability/measure of a graph.
 
     This function calls `factorized_joint_logprob` and returns the combined
     log-probability factors as a single graph.
 
     Parameters
-    ----------
-    sum: bool
-        If ``True`` each factor is collapsed to a scalar via ``sum`` before
-        being joined with the remaining factors. This may be necessary to
-        avoid incorrect broadcasting among independent factors.
+    ==========
+    random_variables
+        A ``list`` of  random variables for which we need to return a
+        conditional log-probability graph.
+    realized
+        A ``dict`` that maps  random variables to their realized value.
+
+    Returns
+    =======
+    A ``TensorVariable`` that represents the joint log-probability of the graph
+    implicitly defined by the random variables passed as arguments, and a list
+    of the created valued variables in the same order as the order in which
+    their corresponding random variables were passed as arguments.
 
     """
-    logprob = conditional_logprob(rv_values, *args, **kwargs)
+    logprob, value_variables = conditional_logprob(
+        *random_variables, realized=realized, **kwargs
+    )
     if not logprob:
         return None
     elif len(logprob) == 1:
-        logprob = tuple(logprob.values())[0]
-        return at.sum(logprob)
+        cond_logprob = tuple(logprob.values())[0]
+        return at.sum(cond_logprob), value_variables
     else:
-        return at.sum([at.sum(factor) for factor in logprob.values()])
+        joint_logprob: TensorVariable = at.sum(
+            [at.sum(factor) for factor in logprob.values()]
+        )
+        return joint_logprob, value_variables

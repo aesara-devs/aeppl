@@ -26,8 +26,6 @@ def test_mixture_basics():
         p_at.tag.test_value = 0.5
 
         I_rv = srng.bernoulli(p_at, size=size, name="I")
-        i_vv = I_rv.clone()
-        i_vv.name = "i"
 
         if isinstance(axis, Variable):
             M_rv = at.join(axis, X_rv, Y_rv)[I_rv]
@@ -35,33 +33,24 @@ def test_mixture_basics():
             M_rv = at.stack([X_rv, Y_rv], axis=axis)[I_rv]
 
         M_rv.name = "M"
-        m_vv = M_rv.clone()
-        m_vv.name = "m"
 
         return locals()
 
     env = create_mix_model(None, 0)
     X_rv = env["X_rv"]
     I_rv = env["I_rv"]
-    i_vv = env["i_vv"]
     M_rv = env["M_rv"]
-    m_vv = env["m_vv"]
-
-    x_vv = X_rv.clone()
-    x_vv.name = "x"
 
     with pytest.raises(RuntimeError, match="could not be derived: {m}"):
-        conditional_logprob({M_rv: m_vv, I_rv: i_vv, X_rv: x_vv})
+        conditional_logprob(M_rv, I_rv, X_rv)
 
     with pytest.raises(NotImplementedError):
         axis_at = at.lscalar("axis")
         axis_at.tag.test_value = 0
         env = create_mix_model((2,), axis_at)
         I_rv = env["I_rv"]
-        i_vv = env["i_vv"]
         M_rv = env["M_rv"]
-        m_vv = env["m_vv"]
-        joint_logprob({M_rv: m_vv, I_rv: i_vv})
+        joint_logprob(M_rv, I_rv)
 
 
 @aesara.config.change_flags(compute_test_value="warn")
@@ -84,18 +73,13 @@ def test_compute_test_value(op_constructor):
 
     I_rv = srng.bernoulli(p_at, name="I")
 
-    i_vv = I_rv.clone()
-    i_vv.name = "i"
-
     M_rv = op_constructor(I_rv, X_rv, Y_rv)
     M_rv.name = "M"
 
-    m_vv = M_rv.clone()
-    m_vv.name = "m"
+    M_logps, _ = conditional_logprob(M_rv, I_rv)
 
     del M_rv.tag.test_value
 
-    M_logps = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
     M_logp = at.add(*M_logps.values())
 
     assert isinstance(M_logp.tag.test_value, np.ndarray)
@@ -129,19 +113,13 @@ def test_hetero_mixture_binomial(p_val, size):
         I_rv = srng.categorical(p_at, size=size, name="I")
         p_val_1 = p_val[1]
 
-    i_vv = I_rv.clone()
-    i_vv.name = "i"
-
     M_rv = at.stack([X_rv, Y_rv])[I_rv]
     M_rv.name = "M"
 
-    m_vv = M_rv.clone()
-    m_vv.name = "m"
-
-    M_logps = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
+    M_logps, (M_vv, I_vv) = conditional_logprob(M_rv, I_rv)
     M_logp = at.add(*M_logps.values())
 
-    M_logp_fn = aesara.function([p_at, m_vv, i_vv], M_logp)
+    M_logp_fn = aesara.function([p_at, M_vv, I_vv], M_logp)
 
     assert_no_rvs(M_logp_fn.maker.fgraph.outputs[0])
 
@@ -399,9 +377,6 @@ def test_hetero_mixture_categorical(
     p_at.tag.test_value = np.array(p_val, dtype=aesara.config.floatX)
     I_rv = srng.categorical(p_at, size=idx_size, name="I")
 
-    i_vv = I_rv.clone()
-    i_vv.name = "i"
-
     indices_at = list(extra_indices)
     indices_at.insert(join_axis, I_rv)
     indices_at = tuple(indices_at)
@@ -409,13 +384,10 @@ def test_hetero_mixture_categorical(
     M_rv = at.stack([X_rv, Y_rv, Z_rv], axis=join_axis)[indices_at]
     M_rv.name = "M"
 
-    m_vv = M_rv.clone()
-    m_vv.name = "m"
+    logp_parts, (M_vv, I_vv) = conditional_logprob(M_rv, I_rv)
 
-    logp_parts = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
-
-    I_logp_fn = aesara.function([p_at, i_vv], logp_parts[I_rv])
-    M_logp_fn = aesara.function([m_vv, i_vv], logp_parts[M_rv])
+    I_logp_fn = aesara.function([p_at, I_vv], logp_parts[I_rv])
+    M_logp_fn = aesara.function([M_vv, I_vv], logp_parts[M_rv])
 
     assert_no_rvs(I_logp_fn.maker.fgraph.outputs[0])
     assert_no_rvs(M_logp_fn.maker.fgraph.outputs[0])
@@ -700,16 +672,10 @@ def test_mixture_with_DiracDelta():
 
     I_rv = srng.categorical([0.5, 0.5], size=4)
 
-    i_vv = I_rv.clone()
-    i_vv.name = "i"
-
     M_rv = at.stack([X_rv, Y_rv])[I_rv]
     M_rv.name = "M"
 
-    m_vv = M_rv.clone()
-    m_vv.name = "m"
-
-    logp_res = conditional_logprob({M_rv: m_vv, I_rv: i_vv})
+    logp_res, _ = conditional_logprob(M_rv, I_rv)
 
     assert M_rv in logp_res
 
@@ -750,8 +716,8 @@ def test_switch_mixture():
 
     assert equal_computations(fgraph.outputs, fgraph2.outputs)
 
-    z1_logp = joint_logprob({Z1_rv: z_vv, I_rv: i_vv})
-    z2_logp = joint_logprob({Z2_rv: z_vv, I_rv: i_vv})
+    z1_logp, _ = joint_logprob(realized={Z1_rv: z_vv, I_rv: i_vv})
+    z2_logp, _ = joint_logprob(realized={Z2_rv: z_vv, I_rv: i_vv})
 
     # below should follow immediately from the equal_computations assertion above
     assert equal_computations([z1_logp], [z2_logp])

@@ -181,12 +181,10 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
 
     b = at.random.normal(a, 1.0)
     b.name = "b"
-    b_value_var = b.clone()
-    b_value_var.name = "b_value"
 
     transform_rewrite = TransformValuesRewrite({a_value_var: DEFAULT_TRANSFORM})
-    res = joint_logprob(
-        {a: a_value_var, b: b_value_var}, extra_rewrites=transform_rewrite
+    res, (b_value_var,) = joint_logprob(
+        b, realized={a: a_value_var}, extra_rewrites=transform_rewrite
     )
 
     test_val_rng = np.random.RandomState(3238)
@@ -274,8 +272,10 @@ def test_simple_transformed_logprob_nojac(use_jacobian):
     x_vv.name = "x"
 
     transform_rewrite = TransformValuesRewrite({x_vv: DEFAULT_TRANSFORM})
-    tr_logp = joint_logprob(
-        {X_rv: x_vv}, extra_rewrites=transform_rewrite, use_jacobian=use_jacobian
+    tr_logp, _ = joint_logprob(
+        realized={X_rv: x_vv},
+        extra_rewrites=transform_rewrite,
+        use_jacobian=use_jacobian,
     )
 
     assert np.isclose(
@@ -332,8 +332,8 @@ def test_hierarchical_uniform_transform():
             x: DEFAULT_TRANSFORM,
         }
     )
-    logp = joint_logprob(
-        {lower_rv: lower, upper_rv: upper, x_rv: x},
+    logp, _ = joint_logprob(
+        realized={lower_rv: lower, upper_rv: upper, x_rv: x},
         extra_rewrites=transform_rewrite,
     )
 
@@ -358,8 +358,8 @@ def test_nondefault_transforms():
         }
     )
 
-    logp = joint_logprob(
-        {loc_rv: loc, scale_rv: scale, x_rv: x},
+    logp, _ = joint_logprob(
+        realized={loc_rv: loc, scale_rv: scale, x_rv: x},
         extra_rewrites=transform_rewrite,
     )
 
@@ -395,8 +395,8 @@ def test_default_transform_multiout():
 
     transform_rewrite = TransformValuesRewrite({x: DEFAULT_TRANSFORM})
 
-    logp = joint_logprob(
-        {x_rv: x},
+    logp, _ = joint_logprob(
+        realized={x_rv: x},
         extra_rewrites=transform_rewrite,
     )
 
@@ -416,8 +416,8 @@ def test_nonexistent_default_transform():
 
     transform_rewrite = TransformValuesRewrite({x: DEFAULT_TRANSFORM})
 
-    logp = joint_logprob(
-        {x_rv: x},
+    logp, _ = joint_logprob(
+        realized={x_rv: x},
         extra_rewrites=transform_rewrite,
     )
 
@@ -449,7 +449,7 @@ def test_original_values_output_dict():
     p_vv = p_rv.clone()
 
     tr = TransformValuesRewrite({p_vv: DEFAULT_TRANSFORM})
-    logp_dict = conditional_logprob({p_rv: p_vv}, extra_rewrites=tr)
+    logp_dict, _ = conditional_logprob(p_rv, extra_rewrites=tr)
 
     assert p_rv in logp_dict
 
@@ -469,21 +469,14 @@ def test_mixture_transform():
     Y_rv = at.stack([Y_1_rv, Y_2_rv])[I_rv]
     Y_rv.name = "Y"
 
-    i_vv = I_rv.clone()
-    i_vv.name = "i"
-    y_vv = Y_rv.clone()
-    y_vv.name = "y"
-
-    logp_no_trans = joint_logprob(
-        {Y_rv: y_vv, I_rv: i_vv},
-    )
+    logp_no_trans, (y_vv, i_vv) = joint_logprob(Y_rv, I_rv)
 
     transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
 
     with pytest.warns(None) as record:
         # This shouldn't raise any warnings
-        logp_trans = joint_logprob(
-            {Y_rv: y_vv, I_rv: i_vv},
+        logp_trans, _ = joint_logprob(
+            realized={Y_rv: y_vv, I_rv: i_vv},
             extra_rewrites=transform_rewrite,
             use_jacobian=False,
         )
@@ -563,8 +556,8 @@ def test_exp_transform_rv():
     y_rv = at.exp(base_rv)
     y_rv.name = "y"
 
-    y_vv = y_rv.clone()
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    logp = logps[y_rv]
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -579,8 +572,8 @@ def test_log_transform_rv():
     y_rv = at.log(base_rv)
     y_rv.name = "y"
 
-    y_vv = y_rv.clone()
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    logp = logps[y_rv]
     logp_fn = aesara.function([y_vv], logp)
 
     y_val = [0.1, 0.3]
@@ -603,9 +596,9 @@ def test_loc_transform_rv(rv_size, loc_type):
     loc = loc_type("loc")
     y_rv = loc + at.random.normal(0, 1, size=rv_size, name="base_rv")
     y_rv.name = "y"
-    y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    logp = logps[y_rv]
     assert_no_rvs(logp)
     logp_fn = aesara.function([loc, y_vv], logp)
 
@@ -631,9 +624,9 @@ def test_scale_transform_rv(rv_size, scale_type):
     scale = scale_type("scale")
     y_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
     y_rv.name = "y"
-    y_vv = y_rv.clone()
 
-    logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    logp = logps[y_rv]
     assert_no_rvs(logp)
     logp_fn = aesara.function([scale, y_vv], logp)
 
@@ -653,7 +646,7 @@ def test_transformed_rv_and_value():
 
     transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
 
-    logp = joint_logprob({y_rv: y_vv}, extra_rewrites=transform_rewrite)
+    logp, _ = joint_logprob(realized={y_rv: y_vv}, extra_rewrites=transform_rewrite)
     assert_no_rvs(logp)
     logp_fn = aesara.function([y_vv], logp)
 
@@ -670,10 +663,8 @@ def test_loc_transform_multiple_rvs_fails1():
     x_rv2 = at.random.normal(name="x_rv2")
     y_rv = x_rv1 + x_rv2
 
-    y = y_rv.clone()
-
     with pytest.raises(RuntimeError, match="could not be derived"):
-        joint_logprob({y_rv: y})
+        joint_logprob(y_rv)
 
 
 def test_nested_loc_transform_multiple_rvs_fails2():
@@ -681,22 +672,20 @@ def test_nested_loc_transform_multiple_rvs_fails2():
     x_rv2 = at.cos(at.random.normal(name="x_rv2"))
     y_rv = x_rv1 + x_rv2
 
-    y = y_rv.clone()
-
     with pytest.raises(RuntimeError, match="could not be derived"):
-        joint_logprob({y_rv: y})
+        joint_logprob(y_rv)
 
 
 def test_discrete_rv_unary_transform_fails():
     y_rv = at.exp(at.random.poisson(1))
     with pytest.raises(RuntimeError, match="could not be derived"):
-        joint_logprob({y_rv: y_rv.clone()})
+        joint_logprob(y_rv)
 
 
 def test_discrete_rv_multinary_transform_fails():
     y_rv = 5 + at.random.poisson(1)
     with pytest.raises(RuntimeError, match="could not be derived"):
-        joint_logprob({y_rv: y_rv.clone()})
+        joint_logprob(y_rv)
 
 
 @pytest.mark.xfail(reason="Check not implemented yet, see #51")
@@ -704,8 +693,7 @@ def test_invalid_broadcasted_transform_rv_fails():
     loc = at.vector("loc")
     y_rv = loc + at.random.normal(0, 1, size=2, name="base_rv")
     y_rv.name = "y"
-    y_vv = y_rv.clone()
 
-    logp = joint_logprob({y_rv: y_vv})
+    logp, (y_vv,) = joint_logprob(y_rv)
     logp.eval({y_vv: [0, 0, 0, 0], loc: [0, 0, 0, 0]})
     assert False, "Should have failed before"

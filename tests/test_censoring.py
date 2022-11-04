@@ -15,13 +15,10 @@ def test_continuous_rv_clip():
     x_rv = at.random.normal(0.5, 1)
     cens_x_rv = at.clip(x_rv, -2, 2)
 
-    cens_x_vv = cens_x_rv.clone()
-    cens_x_vv.tag.test_value = 0
-
-    logp = joint_logprob({cens_x_rv: cens_x_vv})
+    logp, vv = joint_logprob(cens_x_rv)
     assert_no_rvs(logp)
 
-    logp_fn = aesara.function([cens_x_vv], logp)
+    logp_fn = aesara.function(vv, logp)
     ref_scipy = st.norm(0.5, 1)
 
     assert logp_fn(-3) == -np.inf
@@ -36,12 +33,10 @@ def test_discrete_rv_clip():
     x_rv = at.random.poisson(2)
     cens_x_rv = at.clip(x_rv, 1, 4)
 
-    cens_x_vv = cens_x_rv.clone()
-
-    logp = joint_logprob({cens_x_rv: cens_x_vv})
+    logp, vv = joint_logprob(cens_x_rv)
     assert_no_rvs(logp)
 
-    logp_fn = aesara.function([cens_x_vv], logp)
+    logp_fn = aesara.function(vv, logp)
     ref_scipy = st.poisson(2)
 
     assert logp_fn(0) == -np.inf
@@ -57,11 +52,8 @@ def test_one_sided_clip():
     lb_cens_x_rv = at.clip(x_rv, -1, x_rv)
     ub_cens_x_rv = at.clip(x_rv, x_rv, 1)
 
-    lb_cens_x_vv = lb_cens_x_rv.clone()
-    ub_cens_x_vv = ub_cens_x_rv.clone()
-
-    lb_logp = joint_logprob({lb_cens_x_rv: lb_cens_x_vv})
-    ub_logp = joint_logprob({ub_cens_x_rv: ub_cens_x_vv})
+    lb_logp, (lb_cens_x_vv,) = joint_logprob(lb_cens_x_rv)
+    ub_logp, (ub_cens_x_vv,) = joint_logprob(ub_cens_x_rv)
     assert_no_rvs(lb_logp)
     assert_no_rvs(ub_logp)
 
@@ -78,9 +70,8 @@ def test_useless_clip():
     x_rv = at.random.normal(0.5, 1, size=3)
     cens_x_rv = at.clip(x_rv, x_rv, x_rv)
 
-    cens_x_vv = cens_x_rv.clone()
-
-    logp = conditional_logprob({cens_x_rv: cens_x_vv})[cens_x_rv]
+    logps, (cens_x_vv,) = conditional_logprob(cens_x_rv)
+    logp = logps[cens_x_rv]
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([cens_x_vv], logp)
@@ -94,9 +85,7 @@ def test_random_clip():
     x_rv = at.random.normal(0, 2)
     cens_x_rv = at.clip(x_rv, lb_rv, [1, 1])
 
-    lb_vv = lb_rv.clone()
-    cens_x_vv = cens_x_rv.clone()
-    logps = conditional_logprob({cens_x_rv: cens_x_vv, lb_rv: lb_vv})
+    logps, (cens_x_vv, lb_vv) = conditional_logprob(cens_x_rv, lb_rv)
     logp = at.add(*logps.values())
     assert_no_rvs(logp)
 
@@ -111,10 +100,7 @@ def test_broadcasted_clip_constant():
     x_rv = at.random.normal(0, 2)
     cens_x_rv = at.clip(x_rv, lb_rv, [1, 1])
 
-    lb_vv = lb_rv.clone()
-    cens_x_vv = cens_x_rv.clone()
-
-    logp = joint_logprob({cens_x_rv: cens_x_vv, lb_rv: lb_vv})
+    logp, _ = joint_logprob(cens_x_rv, lb_rv)
     assert_no_rvs(logp)
 
 
@@ -123,10 +109,7 @@ def test_broadcasted_clip_random():
     x_rv = at.random.normal(0, 2, size=2)
     cens_x_rv = at.clip(x_rv, lb_rv, 1)
 
-    lb_vv = lb_rv.clone()
-    cens_x_vv = cens_x_rv.clone()
-
-    logp = joint_logprob({cens_x_rv: cens_x_vv, lb_rv: lb_vv})
+    logp, _ = joint_logprob(cens_x_rv, lb_rv)
     assert_no_rvs(logp)
 
 
@@ -136,10 +119,8 @@ def test_fail_base_and_clip_have_values():
     cens_x_rv = at.clip(x_rv, x_rv, 1)
     cens_x_rv.name = "cens_x"
 
-    x_vv = x_rv.clone()
-    cens_x_vv = cens_x_rv.clone()
     with pytest.raises(RuntimeError, match="could not be derived: {cens_x}"):
-        conditional_logprob({cens_x_rv: cens_x_vv, x_rv: x_vv})
+        conditional_logprob(cens_x_rv, x_rv)
 
 
 def test_fail_multiple_clip_single_base():
@@ -150,10 +131,8 @@ def test_fail_multiple_clip_single_base():
     cens_rv2 = at.clip(base_rv, -1, 1)
     cens_rv2.name = "cens2"
 
-    cens_vv1 = cens_rv1.clone()
-    cens_vv2 = cens_rv2.clone()
     with pytest.raises(RuntimeError, match="could not be derived: {cens2}"):
-        conditional_logprob({cens_rv1: cens_vv1, cens_rv2: cens_vv2})
+        conditional_logprob(cens_rv1, cens_rv2)
 
 
 def test_deterministic_clipping():
@@ -161,9 +140,7 @@ def test_deterministic_clipping():
     clip = at.clip(x_rv, 0, 0)
     y_rv = at.random.normal(clip, 1)
 
-    x_vv = x_rv.clone()
-    y_vv = y_rv.clone()
-    logp = joint_logprob({x_rv: x_vv, y_rv: y_vv})
+    logp, (x_vv, y_vv) = joint_logprob(x_rv, y_rv)
     assert_no_rvs(logp)
 
     logp_fn = aesara.function([x_vv, y_vv], logp)
@@ -180,7 +157,7 @@ def test_clip_transform():
     cens_x_vv = cens_x_rv.clone()
 
     transform = TransformValuesRewrite({cens_x_vv: LogTransform()})
-    logp = joint_logprob({cens_x_rv: cens_x_vv}, extra_rewrites=transform)
+    logp, _ = joint_logprob(realized={cens_x_rv: cens_x_vv}, extra_rewrites=transform)
 
     cens_x_vv_testval = -1
     obs_logp = logp.eval({cens_x_vv: cens_x_vv_testval})
@@ -201,8 +178,8 @@ def test_rounding(rounding_op):
     xr = rounding_op(x)
     xr.name = "xr"
 
-    xr_vv = xr.clone()
-    logp = conditional_logprob({xr: xr_vv})[xr]
+    logp, (xr_vv,) = conditional_logprob(xr)
+    logp = logp[xr]
     assert logp is not None
 
     x_sp = st.norm(loc, scale)

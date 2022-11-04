@@ -33,9 +33,7 @@ def test_naive_bcast_rv_lift_valued_var():
 
     y_rv = at.random.normal(broadcasted_x_rv, name="y")
 
-    x_vv = x_rv.clone()
-    y_vv = y_rv.clone()
-    logp_map = conditional_logprob({x_rv: x_vv, y_rv: y_vv})
+    logp_map, (x_vv, y_vv) = conditional_logprob(x_rv, y_rv)
     assert x_rv in logp_map
     assert y_rv in logp_map
     assert len(logp_map) == 2
@@ -52,15 +50,11 @@ def test_measurable_make_vector():
     y_rv = at.stack((base1_rv, base2_rv, base3_rv))
     y_rv.name = "y"
 
-    base1_vv = base1_rv.clone()
-    base2_vv = base2_rv.clone()
-    base3_vv = base3_rv.clone()
-    y_vv = y_rv.clone()
-
-    ref_logp = joint_logprob(
-        {base1_rv: base1_vv, base2_rv: base2_vv, base3_rv: base3_vv}
+    ref_logp, (base1_vv, base2_vv, base3_vv) = joint_logprob(
+        base1_rv, base2_rv, base3_rv
     )
-    make_vector_logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    make_vector_logp = logps[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -97,18 +91,14 @@ def test_measurable_join_univariate(size1, size2, axis, concatenate):
         y_rv = at.stack((base1_rv, base2_rv), axis=axis)
     y_rv.name = "y"
 
-    base1_vv = base1_rv.clone()
-    base2_vv = base2_rv.clone()
-    y_vv = y_rv.clone()
-
-    base_logps = list(
-        conditional_logprob({base1_rv: base1_vv, base2_rv: base2_vv}).values()
-    )
+    logps, (base1_vv, base2_vv) = conditional_logprob(base1_rv, base2_rv)
+    base_logps = list(logps.values())
     if concatenate:
         base_logps = at.concatenate(base_logps, axis=axis)
     else:
         base_logps = at.stack(base_logps, axis=axis)
-    y_logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    y_logp = logps[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -167,15 +157,8 @@ def test_measurable_join_multivariate(
         y_rv = at.stack((base1_rv, base2_rv), axis=axis)
     y_rv.name = "y"
 
-    base1_vv = base1_rv.clone()
-    base2_vv = base2_rv.clone()
-    y_vv = y_rv.clone()
-    base_logps = [
-        at.atleast_1d(logp)
-        for logp in conditional_logprob(
-            {base1_rv: base1_vv, base2_rv: base2_vv}
-        ).values()
-    ]
+    logps, (base1_vv, base2_vv) = conditional_logprob(base1_rv, base2_rv)
+    base_logps = [at.atleast_1d(logp) for logp in logps.values()]
 
     if concatenate:
         axis_norm = np.core.numeric.normalize_axis_index(axis, base1_rv.ndim)
@@ -183,7 +166,8 @@ def test_measurable_join_multivariate(
     else:
         axis_norm = np.core.numeric.normalize_axis_index(axis, base1_rv.ndim + 1)
         base_logps = at.stack(base_logps, axis=axis_norm - 1)
-    y_logp = conditional_logprob({y_rv: y_vv})[y_rv]
+    logps, (y_vv,) = conditional_logprob(y_rv)
+    y_logp = logps[y_rv]
 
     base1_testval = base1_rv.eval()
     base2_testval = base2_rv.eval()
@@ -202,11 +186,10 @@ def test_join_mixed_ndim_supp():
     base2_rv = at.random.dirichlet(np.ones(3), name="base2")
     y_rv = at.concatenate((base1_rv, base2_rv), axis=0)
 
-    y_vv = y_rv.clone()
     with pytest.raises(
         ValueError, match="Joined logps have different number of dimensions"
     ):
-        joint_logprob({y_rv: y_vv})
+        joint_logprob(y_rv)
 
 
 @aesara.config.change_flags(cxx="")
@@ -236,8 +219,6 @@ def test_measurable_dimshuffle(ds_order, multivariate):
         base_rv = at.exp(at.random.beta(1, 2, size=(2, 1, 3)))
 
     ds_rv = base_rv.dimshuffle(ds_order)
-    base_vv = base_rv.clone()
-    ds_vv = ds_rv.clone()
 
     # Remove support dimension axis from ds_order (i.e., 2, for multivariate)
     if multivariate:
@@ -245,15 +226,15 @@ def test_measurable_dimshuffle(ds_order, multivariate):
     else:
         logp_ds_order = ds_order
 
-    ref_logp = conditional_logprob({base_rv: base_vv})[base_rv].dimshuffle(
-        logp_ds_order
-    )
+    logps, (base_vv,) = conditional_logprob(base_rv)
+    ref_logp = logps[base_rv].dimshuffle(logp_ds_order)
 
     # Disable local_dimshuffle_rv_lift to test fallback Aeppl rewrite
     ir_rewriter = logprob_rewrites_db.query(
         RewriteDatabaseQuery(include=["basic"]).excluding("dimshuffle_lift")
     )
-    ds_logp = conditional_logprob({ds_rv: ds_vv}, ir_rewriter=ir_rewriter)[ds_rv]
+    logps, (ds_vv,) = conditional_logprob(ds_rv, ir_rewriter=ir_rewriter)
+    ds_logp = logps[ds_rv]
     assert ds_logp is not None
 
     ref_logp_fn = aesara.function([base_vv], ref_logp)
@@ -283,7 +264,6 @@ def test_unmeargeable_dimshuffles():
     # Support axis is now at axis=-3
     w = z.dimshuffle((1, 0, 2))
 
-    w_vv = w.clone()
     # TODO: Check that logp is correct if this type of graphs is ever supported
     with pytest.raises(RuntimeError, match="could not be derived"):
-        joint_logprob({w: w_vv})
+        joint_logprob(w)

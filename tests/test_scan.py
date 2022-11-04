@@ -260,12 +260,6 @@ def test_scan_joint_logprob(require_inner_rewrites):
     sigmas_tt = at.ones((N_tt,))
     Gamma_rv = srng.dirichlet(at.ones((M_tt, M_tt)), name="Gamma")
 
-    Gamma_vv = Gamma_rv.clone()
-    Gamma_vv.name = "Gamma_vv"
-
-    Gamma_val = np.array([[0.5, 0.5], [0.5, 0.5]])
-    Gamma_rv.tag.test_value = Gamma_val
-
     def scan_fn(mus_t, sigma_t, Gamma_t):
         S_t = srng.categorical(Gamma_t[0], name="S_t")
 
@@ -287,16 +281,11 @@ def test_scan_joint_logprob(require_inner_rewrites):
     Y_rv.name = "Y"
     S_rv.name = "S"
 
-    y_vv = Y_rv.clone()
-    y_vv.name = "y"
-
-    s_vv = S_rv.clone()
-    s_vv.name = "s"
-
-    y_logp = joint_logprob({Y_rv: y_vv, S_rv: s_vv, Gamma_rv: Gamma_vv})
+    y_logp, (y_vv, s_vv, Gamma_vv) = joint_logprob(Y_rv, S_rv, Gamma_rv)
 
     y_val = np.arange(10)
     s_val = np.array([0, 1, 0, 1, 1, 0, 0, 0, 1, 1])
+    Gamma_val = np.array([[0.5, 0.5], [0.5, 0.5]])
 
     test_point = {
         y_vv: y_val,
@@ -358,9 +347,6 @@ def test_initial_values():
     Gamma_at = at.matrix("Gamma")
     Gamma_at.tag.test_value = np.array([[0, 1], [1, 0]])
 
-    s_0_vv = S_0_rv.clone()
-    s_0_vv.name = "s_0"
-
     def step_fn(S_tm1, Gamma):
         S_t = srng.categorical(Gamma[S_tm1], name="S_t")
         return S_t
@@ -375,10 +361,8 @@ def test_initial_values():
     )
 
     S_1T_rv.name = "S_1T"
-    s_1T_vv = S_1T_rv.clone()
-    s_1T_vv.name = "s_1T"
 
-    logp_parts = conditional_logprob({S_1T_rv: s_1T_vv, S_0_rv: s_0_vv})
+    logp_parts, (s_1T_vv, s_0_vv) = conditional_logprob(S_1T_rv, S_0_rv)
 
     s_0_val = 0
     s_1T_val = np.array([1, 0, 1, 0, 1, 1, 0, 1, 0, 1])
@@ -407,12 +391,13 @@ def test_mode_is_kept(remove_asserts):
         mode=mode,
     )
     x.name = "x"
-    x_vv = x.clone()
-    x_logp = aesara.function([x_vv], joint_logprob({x: x_vv}))
+
+    logp, (x_vv,) = joint_logprob(x)
+    x_logp = aesara.function([x_vv], logp)
 
     x_test_val = np.full((10,), -1)
     if remove_asserts:
-        assert x_logp(x=x_test_val)
+        assert x_logp(x_vv=x_test_val)
     else:
         with pytest.raises(AssertionError):
-            x_logp(x=x_test_val)
+            x_logp(x_vv=x_test_val)
