@@ -34,9 +34,7 @@ containing Aesara ``RandomVariable``\s:
   Y_rv = at.random.normal(0.0, at.sqrt(S_rv))
 
   # Compute the joint log-probability
-  y = at.scalar("y")
-  s = at.scalar("s")
-  logprob = joint_logprob({Y_rv: y, S_rv: s})
+  logprob, (y, s) = joint_logprob(Y_rv, S_rv)
 
 
 Log-probability graphs are standard Aesara graphs, so we can compute
@@ -102,11 +100,8 @@ Joint log-probabilities can be computed for some terms that are *derived* from
   M_rv = Z_rv[I_rv]
   M_rv.name = "M"
 
-  z = at.vector("z")
-  i = at.lscalar("i")
-  m = at.scalar("m")
   # Compute the joint log-probability for the mixture
-  logprob = joint_logprob({M_rv: m, Z_rv: z, I_rv: i})
+  logprob, (m, z, i) = joint_logprob(M_rv, Z_rv, I_rv)
 
 
   logprob = rewrite_graph(logprob, custom_rewrite=topo_constant_folding)
