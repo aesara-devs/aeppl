@@ -247,6 +247,6 @@ def test_multiple_rvs_to_same_value_raises():
     x = x_rv1.type()
     x.name = "x"
 
-    msg = "More than one logprob factor was assigned to the value variable x"
+    msg = "More than one logprob factor was assigned to the random variable x"
     with pytest.raises(ValueError, match=msg):
         joint_logprob(realized={x_rv1: x, x_rv2: x})

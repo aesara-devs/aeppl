@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 import scipy as sp
 import scipy.special
-from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
 from numdifftools import Jacobian
 
@@ -22,7 +21,6 @@ from aeppl.transforms import (
     TransformValuesMapping,
     TransformValuesRewrite,
     _default_transformed_rv,
-    transformed_variable,
 )
 from tests.utils import assert_no_rvs
 
@@ -176,15 +174,13 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
 
     a = at_dist(*dist_params, size=size)
     a.name = "a"
-    a_value_var = at.tensor(a.dtype, shape=(None,) * a.ndim)
-    a_value_var.name = "a_value"
 
     b = at.random.normal(a, 1.0)
     b.name = "b"
 
-    transform_rewrite = TransformValuesRewrite({a_value_var: DEFAULT_TRANSFORM})
-    res, (b_value_var,) = joint_logprob(
-        b, realized={a: a_value_var}, extra_rewrites=transform_rewrite
+    transform_rewrite = TransformValuesRewrite({a: DEFAULT_TRANSFORM})
+    res, (b_value_var, a_value_var) = joint_logprob(
+        b, a, extra_rewrites=transform_rewrite
     )
 
     test_val_rng = np.random.RandomState(3238)
@@ -268,12 +264,10 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
 @pytest.mark.parametrize("use_jacobian", [True, False])
 def test_simple_transformed_logprob_nojac(use_jacobian):
     X_rv = at.random.halfnormal(0, 3, name="X")
-    x_vv = X_rv.clone()
-    x_vv.name = "x"
 
-    transform_rewrite = TransformValuesRewrite({x_vv: DEFAULT_TRANSFORM})
-    tr_logp, _ = joint_logprob(
-        realized={X_rv: x_vv},
+    transform_rewrite = TransformValuesRewrite({X_rv: DEFAULT_TRANSFORM})
+    tr_logp, (x_vv,) = joint_logprob(
+        X_rv,
         extra_rewrites=transform_rewrite,
         use_jacobian=use_jacobian,
     )
@@ -321,19 +315,17 @@ def test_hierarchical_uniform_transform():
     upper_rv = at.random.uniform(9, 10, name="upper")
     x_rv = at.random.uniform(lower_rv, upper_rv, name="x")
 
-    lower = lower_rv.clone()
-    upper = upper_rv.clone()
-    x = x_rv.clone()
-
     transform_rewrite = TransformValuesRewrite(
         {
-            lower: DEFAULT_TRANSFORM,
-            upper: DEFAULT_TRANSFORM,
-            x: DEFAULT_TRANSFORM,
+            lower_rv: DEFAULT_TRANSFORM,
+            upper_rv: DEFAULT_TRANSFORM,
+            x_rv: DEFAULT_TRANSFORM,
         }
     )
-    logp, _ = joint_logprob(
-        realized={lower_rv: lower, upper_rv: upper, x_rv: x},
+    logp, (lower, upper, x) = joint_logprob(
+        lower_rv,
+        upper_rv,
+        x_rv,
         extra_rewrites=transform_rewrite,
     )
 
@@ -346,20 +338,18 @@ def test_nondefault_transforms():
     scale_rv = at.random.uniform(-1, 1, name="scale")
     x_rv = at.random.normal(loc_rv, scale_rv, name="x")
 
-    loc = loc_rv.clone()
-    scale = scale_rv.clone()
-    x = x_rv.clone()
-
     transform_rewrite = TransformValuesRewrite(
         {
-            loc: None,
-            scale: LogOddsTransform(),
-            x: LogTransform(),
+            loc_rv: None,
+            scale_rv: LogOddsTransform(),
+            x_rv: LogTransform(),
         }
     )
 
-    logp, _ = joint_logprob(
-        realized={loc_rv: loc, scale_rv: scale, x_rv: x},
+    logp, (loc, scale, x) = joint_logprob(
+        loc_rv,
+        scale_rv,
+        x_rv,
         extra_rewrites=transform_rewrite,
     )
 
@@ -391,12 +381,11 @@ def test_default_transform_multiout():
     # multiple outputs and no default output.
     sd = at.linalg.svd(at.eye(1))[1][0]
     x_rv = at.random.normal(0, sd, name="x")
-    x = x_rv.clone()
 
-    transform_rewrite = TransformValuesRewrite({x: DEFAULT_TRANSFORM})
+    transform_rewrite = TransformValuesRewrite({x_rv: DEFAULT_TRANSFORM})
 
-    logp, _ = joint_logprob(
-        realized={x_rv: x},
+    logp, (x,) = joint_logprob(
+        x_rv,
         extra_rewrites=transform_rewrite,
     )
 
@@ -412,12 +401,11 @@ def test_nonexistent_default_transform():
     transform does not fail
     """
     x_rv = at.random.normal(name="x")
-    x = x_rv.clone()
 
-    transform_rewrite = TransformValuesRewrite({x: DEFAULT_TRANSFORM})
+    transform_rewrite = TransformValuesRewrite({x_rv: DEFAULT_TRANSFORM})
 
-    logp, _ = joint_logprob(
-        realized={x_rv: x},
+    logp, (x,) = joint_logprob(
+        x_rv,
         extra_rewrites=transform_rewrite,
     )
 
@@ -446,9 +434,8 @@ def test_original_values_output_dict():
     the logprob factor
     """
     p_rv = at.random.beta(1, 1, name="p")
-    p_vv = p_rv.clone()
 
-    tr = TransformValuesRewrite({p_vv: DEFAULT_TRANSFORM})
+    tr = TransformValuesRewrite({p_rv: DEFAULT_TRANSFORM})
     logp_dict, _ = conditional_logprob(p_rv, extra_rewrites=tr)
 
     assert p_rv in logp_dict
@@ -469,29 +456,28 @@ def test_mixture_transform():
     Y_rv = at.stack([Y_1_rv, Y_2_rv])[I_rv]
     Y_rv.name = "Y"
 
-    logp_no_trans, (y_vv, i_vv) = joint_logprob(Y_rv, I_rv)
+    logp, (y_vv, i_vv) = joint_logprob(
+        Y_rv,
+        I_rv,
+    )
 
-    transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
+    transform_rewrite = TransformValuesRewrite({Y_rv: LogOddsTransform()})
 
     with pytest.warns(None) as record:
         # This shouldn't raise any warnings
-        logp_trans, _ = joint_logprob(
-            realized={Y_rv: y_vv, I_rv: i_vv},
+        logp_trans, (y_vv_trans, i_vv_trans) = joint_logprob(
+            Y_rv,
+            I_rv,
             extra_rewrites=transform_rewrite,
             use_jacobian=False,
         )
 
     assert not record.list
 
-    # The untransformed graph should be the same as the transformed graph after
-    # replacing the `Y_rv` value variable with a transformed version of itself
-    logp_nt_fg = FunctionGraph(outputs=[logp_no_trans], clone=False)
-    y_trans = transformed_variable(at.exp(y_vv), y_vv)
-    y_trans.name = "y_log"
-    logp_nt_fg.replace(y_vv, y_trans)
-    logp_nt = logp_nt_fg.outputs[0]
-
-    assert equal_computations([logp_nt], [logp_trans])
+    logp_fn = aesara.function((i_vv, y_vv), logp)
+    logp_trans_fn = aesara.function((i_vv_trans, y_vv_trans), logp_trans)
+    np.isclose(logp_trans_fn(0, np.log(0.1 / 0.9)), logp_fn(0, 0.1))
+    np.isclose(logp_trans_fn(1, np.log(0.1 / 0.9)), logp_fn(1, 0.1))
 
 
 def test_invalid_interval_transform():
@@ -642,11 +628,10 @@ def test_scale_transform_rv(rv_size, scale_type):
 def test_transformed_rv_and_value():
     y_rv = at.random.halfnormal(-1, 1, name="base_rv") + 1
     y_rv.name = "y"
-    y_vv = y_rv.clone()
 
-    transform_rewrite = TransformValuesRewrite({y_vv: LogTransform()})
+    transform_rewrite = TransformValuesRewrite({y_rv: LogTransform()})
 
-    logp, _ = joint_logprob(realized={y_rv: y_vv}, extra_rewrites=transform_rewrite)
+    logp, (y_vv,) = joint_logprob(y_rv, extra_rewrites=transform_rewrite)
     assert_no_rvs(logp)
     logp_fn = aesara.function([y_vv], logp)
 

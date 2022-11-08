@@ -110,8 +110,16 @@ def conditional_logprob(
 
     fgraph, rv_values, _ = construct_ir_fgraph(rv_values, ir_rewriter=ir_rewriter)
 
+    # The interface for transformations assumes that the value variables are in
+    # the transformed space. To get the correct `shape` and `dtype` for the
+    # value variables we return we need to apply the forward transformation to
+    # our RV copies, and return the type of the resulting variable as a value
+    # variable.
+    vv_remapper = {}
     if extra_rewrites is not None:
-        extra_rewrites.rewrite(fgraph)
+        extra_rewrites.add_requirements(fgraph, {**original_rv_values, **realized})
+        extra_rewrites.apply(fgraph)
+        vv_remapper = fgraph.values_to_untransformed
 
     rv_remapper = fgraph.preserve_rv_mappings
 
@@ -145,6 +153,7 @@ def conditional_logprob(
     q = deque(fgraph.toposort())
 
     logprob_vars = {}
+    value_variables = {}
 
     while q:
         node = q.popleft()
@@ -201,6 +210,9 @@ def conditional_logprob(
 
             logprob_vars[q_rv] = q_logprob_var
 
+            q_value_var = vv_remapper.get(q_value_var, q_value_var)
+            value_variables[q_rv] = q_value_var
+
         # Recompute test values for the changes introduced by the
         # replacements above.
         if config.compute_test_value != "off":
@@ -213,7 +225,7 @@ def conditional_logprob(
             f"The logprob terms of the following random variables could not be derived: {missing_value_terms}"
         )
 
-    return logprob_vars, list(original_rv_values.values())
+    return logprob_vars, [value_variables[rv] for rv in original_rv_values.keys()]
 
 
 def joint_logprob(
