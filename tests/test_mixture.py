@@ -41,7 +41,10 @@ def test_mixture_basics():
     I_rv = env["I_rv"]
     M_rv = env["M_rv"]
 
-    with pytest.raises(RuntimeError, match="could not be derived: {m}"):
+    with pytest.raises(
+        RuntimeError,
+        match="The logprob terms of the following random variables could not be derived: {M}",
+    ):
         conditional_logprob(M_rv, I_rv, X_rv)
 
     with pytest.raises(NotImplementedError):

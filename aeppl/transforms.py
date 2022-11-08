@@ -122,9 +122,14 @@ def transform_values(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
     """
 
     rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+    values_to_untransformed = getattr(fgraph, "values_to_untransformed", None)
     values_to_transforms = getattr(fgraph, "values_to_transforms", None)
 
-    if rv_map_feature is None or values_to_transforms is None:
+    if (
+        rv_map_feature is None
+        or values_to_transforms is None
+        or values_to_untransformed is None
+    ):
         return None  # pragma: no cover
 
     try:
@@ -133,6 +138,7 @@ def transform_values(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
     except ValueError:
         return None
 
+    value_var: TensorVariable
     value_var = rv_map_feature.rv_values.get(rv_var, None)
     if value_var is None:
         return None
@@ -154,10 +160,21 @@ def transform_values(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
         trans_node.outputs[rv_var_out_idx].name = node.outputs[rv_var_out_idx].name
 
     # We now assume that the old value variable represents the *transformed space*.
-    # This means that we need to replace all instance of the old value variable
+
+    # Since we initialize value variables as copies of the random variables,
+    # thus in the untransformed space, we need to apply the forward
+    # transformation to get value variables in the transformed space.
+    old_value_var: TensorVariable = transform.forward(
+        value_var, *trans_node.inputs
+    ).type()
+    if value_var.name:
+        old_value_var.name = value_var.name
+    values_to_untransformed[value_var] = old_value_var
+
+    # We need to replace all instance of the old value variable
     # with "inversely/un-" transformed versions of itself.
     new_value_var = transformed_variable(
-        transform.backward(value_var, *trans_node.inputs), value_var
+        transform.backward(old_value_var, *trans_node.inputs), old_value_var
     )
     if value_var.name and getattr(transform, "name", None):
         new_value_var.name = f"{value_var.name}_{transform.name}"
@@ -170,16 +187,24 @@ def transform_values(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
 
 
 class TransformValuesMapping(Feature):
-    r"""A `Feature` that maintains a map between value variables and their transforms."""
+    r"""A `Feature` that maintains a map between value variables and their transforms as
+    well as between value variables and their transformed counterpart.
+
+    """
 
     def __init__(self, values_to_transforms):
         self.values_to_transforms = values_to_transforms
+        self.values_to_untransformed: Dict[TensorVariable, TensorVariable] = {}
 
     def on_attach(self, fgraph):
         if hasattr(fgraph, "values_to_transforms"):
             raise AlreadyThere()
 
         fgraph.values_to_transforms = self.values_to_transforms
+        fgraph.values_to_untransformed = self.values_to_untransformed
+
+    def update_untransformed_value(self, value, untransformed_value):
+        self.values_to_untransformed[value] = untransformed_value
 
 
 class TransformValuesRewrite(GraphRewriter):
@@ -189,7 +214,7 @@ class TransformValuesRewrite(GraphRewriter):
 
     def __init__(
         self,
-        values_to_transforms: Dict[
+        rvs_to_transforms: Dict[
             TensorVariable, Union[RVTransform, DefaultTransformSentinel, None]
         ],
     ):
@@ -197,17 +222,23 @@ class TransformValuesRewrite(GraphRewriter):
         Parameters
         ==========
         values_to_transforms
-            Mapping between value variables and their transformations.  Each
-            value variable can be assigned one of `RVTransform`,
-            ``DEFAULT_TRANSFORM``, or ``None``. If a transform is not specified
-            for a specific value variable it will not be transformed.
+            Mapping between random variables and their transformations. Each
+            random variable can be assigned one of `RVTransform`,
+            ``DEFAULT_TRANSFORM``, or ``None``. Random variables with no
+            transform specified remain unchanged.
 
         """
 
-        self.values_to_transforms = values_to_transforms
+        self.rvs_to_transforms = rvs_to_transforms
 
-    def add_requirements(self, fgraph):
-        values_transforms_feature = TransformValuesMapping(self.values_to_transforms)
+    def add_requirements(
+        self, fgraph, rv_to_values: Dict[TensorVariable, TensorVariable]
+    ):
+        values_to_transforms = {
+            rv_to_values[rv]: transform
+            for rv, transform in self.rvs_to_transforms.items()
+        }
+        values_transforms_feature = TransformValuesMapping(values_to_transforms)
         fgraph.attach_feature(values_transforms_feature)
 
     def apply(self, fgraph: FunctionGraph):

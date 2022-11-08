@@ -154,10 +154,8 @@ def test_clip_transform():
     x_rv = at.random.normal(0.5, 1)
     cens_x_rv = at.clip(x_rv, 0, x_rv)
 
-    cens_x_vv = cens_x_rv.clone()
-
-    transform = TransformValuesRewrite({cens_x_vv: LogTransform()})
-    logp, _ = joint_logprob(realized={cens_x_rv: cens_x_vv}, extra_rewrites=transform)
+    transform = TransformValuesRewrite({cens_x_rv: LogTransform()})
+    logp, (cens_x_vv,) = joint_logprob(cens_x_rv, extra_rewrites=transform)
 
     cens_x_vv_testval = -1
     obs_logp = logp.eval({cens_x_vv: cens_x_vv_testval})
