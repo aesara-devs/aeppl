@@ -1,12 +1,33 @@
 #!/usr/bin/env python
+import os
 from os.path import exists
 
 from setuptools import setup
 
 import versioneer
 
+NAME = "aeppl"
+
+# Handle builds of nightly release
+if "BUILD_AEPPL_NIGHTLY" in os.environ:
+    nightly = True
+    NAME += "-nightly"
+
+    from versioneer import get_versions as original_get_versions
+
+    def get_versions():
+        from datetime import datetime, timezone
+
+        suffix = datetime.now(timezone.utc).strftime(r".dev%Y%m%d")
+        versions = original_get_versions()
+        versions["version"] = versions["version"].split("+")[0] + suffix
+        return versions
+
+    versioneer.get_versions = get_versions
+
+
 setup(
-    name="aeppl",
+    name=NAME,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description="PPL tools for Aesara",
@@ -39,4 +60,5 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
+    keywords=["aeppl", "math", "probability", "symbolic", "probabilistic programming"],
 )
