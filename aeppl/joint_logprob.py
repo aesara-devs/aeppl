@@ -102,7 +102,7 @@ def conditional_logprob(
             vv.name = f"{rv.name}_vv"
         original_rv_values[rv] = vv
 
-    # Value variables are not cloned when constructing the conditional log-proprobability
+    # Value variables are not cloned when constructing the conditional log-probability
     # graphs. We can thus use them to recover the original random variables to index the
     # maps to the logprob graphs and value variables before returning them.
     rv_values = {**original_rv_values, **realized}
