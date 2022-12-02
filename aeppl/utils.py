@@ -188,7 +188,9 @@ def replace_rvs_in_graphs(
             clone=False,
         )
 
-        fg.replace_all(replacements.items(), import_missing=True)
+        fg.replace_all(
+            replacements.items(), import_missing=True, reason="replace_rvs_in_graphs"
+        )
 
         graphs = list(fg.outputs)
 
