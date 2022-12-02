@@ -326,6 +326,6 @@ def construct_ir_fgraph(
         new_to_old = tuple(
             (v, k) for k, v in rv_remapper.measurable_conversions.items()
         )
-        fgraph.replace_all(new_to_old)
+        fgraph.replace_all(new_to_old, reason="construct_ir_fgraph")
 
     return fgraph, rv_values, memo
