@@ -573,24 +573,31 @@ def test_log_transform_rv():
         ((2, 1), at.col),
     ],
 )
-def test_loc_transform_rv(rv_size, loc_type):
+@pytest.mark.parametrize("right", [True, False])
+def test_transform_measurable_add(rv_size, loc_type, right):
 
     loc = loc_type("loc")
-    y_rv = loc + at.random.normal(0, 1, size=rv_size, name="base_rv")
-    y_rv.name = "y"
+    X_rv = at.random.normal(0, 1, size=rv_size, name="X")
+    if right:
+        Z_rv = loc + X_rv
+    else:
+        Z_rv = X_rv + loc
 
-    logps, (y_vv,) = conditional_logprob(y_rv)
-    logp = logps[y_rv]
+    logps, (z_vv,) = conditional_logprob(Z_rv)
+    logp = logps[Z_rv]
     assert_no_rvs(logp)
-    logp_fn = aesara.function([loc, y_vv], logp)
+    logp_fn = aesara.function([loc, z_vv], logp)
 
     loc_test_val = np.full(rv_size or (), 4.0)
-    y_test_val = np.full(rv_size or (), 1.0)
+    z_test_val = np.full(rv_size or (), 1.0)
 
     np.testing.assert_allclose(
-        logp_fn(loc_test_val, y_test_val),
-        sp.stats.norm(loc_test_val, 1).logpdf(y_test_val),
+        logp_fn(loc_test_val, z_test_val),
+        sp.stats.norm(loc_test_val, 1).logpdf(z_test_val),
     )
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
 
 
 @pytest.mark.parametrize(
@@ -601,24 +608,32 @@ def test_loc_transform_rv(rv_size, loc_type):
         ((2, 3), at.matrix),
     ],
 )
-def test_scale_transform_rv(rv_size, scale_type):
+@pytest.mark.parametrize("right", [True, False])
+def test_scale_transform_rv(rv_size, scale_type, right):
 
     scale = scale_type("scale")
-    y_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
-    y_rv.name = "y"
+    X_rv = at.random.normal(0, 1, size=rv_size, name="X")
+    if right:
+        Z_rv = scale * X_rv
+    else:
+        # Z_rv = at.random.normal(0, 1, size=rv_size, name="base_rv") * scale
+        Z_rv = X_rv / at.reciprocal(scale)
 
-    logps, (y_vv,) = conditional_logprob(y_rv)
-    logp = logps[y_rv]
+    logps, (z_vv,) = conditional_logprob(Z_rv)
+    logp = logps[Z_rv]
     assert_no_rvs(logp)
-    logp_fn = aesara.function([scale, y_vv], logp)
+    logp_fn = aesara.function([scale, z_vv], logp)
 
     scale_test_val = np.full(rv_size or (), 4.0)
-    y_test_val = np.full(rv_size or (), 1.0)
+    z_val = np.full(rv_size or (), 1.0)
 
     np.testing.assert_allclose(
-        logp_fn(scale_test_val, y_test_val),
-        sp.stats.norm(0, scale_test_val).logpdf(y_test_val),
+        logp_fn(scale_test_val, z_val),
+        sp.stats.norm(0, scale_test_val).logpdf(z_val),
     )
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
 
 
 def test_transformed_rv_and_value():
@@ -678,3 +693,73 @@ def test_invalid_broadcasted_transform_rv_fails():
     logp, (y_vv,) = joint_logprob(y_rv)
     logp.eval({y_vv: [0, 0, 0, 0], loc: [0, 0, 0, 0]})
     assert False, "Should have failed before"
+
+
+@pytest.mark.parametrize("a", (1.0, 2.0))
+def test_transform_measurable_true_div(a):
+    shape, scale = 3, 5
+    X_rv = at.random.gamma(shape, scale, name="X")
+
+    Z_rv = a / X_rv
+
+    logp, (z_vv,) = joint_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], logp)
+
+    z_test_val = 1.5
+    assert np.isclose(
+        z_logp_fn(z_test_val),
+        sp.stats.invgamma(shape, scale=scale * a).logpdf(z_test_val),
+    )
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
+
+    Z_rv = X_rv / a
+
+    logp, (z_vv,) = joint_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], logp)
+
+    z_test_val = 1.5
+    assert np.isclose(
+        z_logp_fn(z_test_val),
+        sp.stats.gamma(shape, scale=1 / (scale * a)).logpdf(z_test_val),
+    )
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
+
+
+def test_transform_measurable_neg():
+    X_rv = at.random.halfnormal(name="X")
+    Z_rv = -X_rv
+
+    logp, (z_vv,) = joint_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], logp)
+
+    assert np.isclose(z_logp_fn(-1.5), sp.stats.halfnorm.logpdf(1.5))
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
+
+
+def test_transform_measurable_sub():
+    # We use a base RV that is asymmetric around zero
+    X_rv = at.random.normal(1.0, name="X")
+
+    Z_rv = 5.0 - X_rv
+
+    logp, (z_vv,) = joint_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], logp)
+    assert np.isclose(z_logp_fn(7.3), sp.stats.norm.logpdf(5.0 - 7.3, 1.0))
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)
+
+    Z_rv = X_rv - 5.0
+
+    logp, (z_vv,) = joint_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], logp)
+    assert np.isclose(z_logp_fn(7.3), sp.stats.norm.logpdf(7.3, loc=-4.0))
+
+    with pytest.raises(RuntimeError, match="The logprob terms"):
+        joint_logprob(Z_rv, X_rv)

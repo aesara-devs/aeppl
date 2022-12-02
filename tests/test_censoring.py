@@ -131,7 +131,7 @@ def test_fail_multiple_clip_single_base():
     cens_rv2 = at.clip(base_rv, -1, 1)
     cens_rv2.name = "cens2"
 
-    with pytest.raises(RuntimeError, match="could not be derived: {cens2}"):
+    with pytest.raises(RuntimeError, match=r"could not be derived: {cens\d}"):
         conditional_logprob(cens_rv1, cens_rv2)
 
 

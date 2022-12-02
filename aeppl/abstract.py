@@ -1,7 +1,7 @@
 import abc
 from copy import copy
 from functools import singledispatch
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
@@ -121,16 +121,6 @@ def assign_custom_measurable_outputs(
 
 class MeasurableElemwise(Elemwise):
     """Base class for Measurable Elemwise variables"""
-
-    valid_scalar_types: Tuple[MetaType, ...] = ()
-
-    def __init__(self, scalar_op, *args, **kwargs):
-        if not isinstance(scalar_op, self.valid_scalar_types):
-            raise TypeError(
-                f"scalar_op {scalar_op} is not valid for class {self.__class__}. "
-                f"Acceptable types are {self.valid_scalar_types}"
-            )
-        super().__init__(scalar_op, *args, **kwargs)
 
 
 MeasurableVariable.register(MeasurableElemwise)
