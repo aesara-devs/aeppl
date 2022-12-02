@@ -39,6 +39,7 @@ setup(
         "numpy>=1.18.1",
         "scipy>=1.4.0",
         "aesara >= 2.8.8",
+        "typing_extensions",
     ],
     tests_require=["pytest"],
     long_description=open("README.rst").read() if exists("README.rst") else "",

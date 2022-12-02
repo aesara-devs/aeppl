@@ -1,23 +1,23 @@
 import abc
 from copy import copy
 from functools import partial, singledispatch
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import aesara.tensor as at
 from aesara.gradient import DisconnectedType, jacobian
-from aesara.graph.basic import Apply, Node, Variable
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
-from aesara.scalar import Add, Exp, Log, Mul
-from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.math import add, exp, log, mul, reciprocal, sub, true_div
 from aesara.tensor.rewriting.basic import (
     register_specialize,
     register_stabilize,
     register_useless,
 )
 from aesara.tensor.var import TensorVariable
+from typing_extensions import Protocol
 
 from aeppl.abstract import (
     MeasurableElemwise,
@@ -29,11 +29,32 @@ from aeppl.logprob import _logprob, logprob
 from aeppl.rewriting import PreserveRVMappings, measurable_ir_rewrites_db
 from aeppl.utils import walk_model
 
+if TYPE_CHECKING:
+    from aesara.graph.rewriting.basic import NodeRewriter
+
+    class TransformFnType(Protocol):
+        def __call__(
+            self, measurable_input: MeasurableVariable, *other_inputs: Variable
+        ) -> Tuple["RVTransform", Tuple[TensorVariable, ...]]:
+            pass
+
+
+def register_measurable_ir(
+    node_rewriter: "NodeRewriter",
+    *tags: str,
+    **kwargs,
+):
+    name = kwargs.pop("name", None) or node_rewriter.__name__
+    measurable_ir_rewrites_db.register(
+        name, node_rewriter, "basic", "transform", *tags, **kwargs
+    )
+    return node_rewriter
+
 
 @singledispatch
 def _default_transformed_rv(
     op: Op,
-    node: Node,
+    node: Apply,
 ) -> Optional[Apply]:
     """Create a node for a transformed log-probability of a `MeasurableVariable`.
 
@@ -109,7 +130,7 @@ DEFAULT_TRANSFORM = DefaultTransformSentinel()
 
 
 @node_rewriter(tracks=None)
-def transform_values(fgraph: FunctionGraph, node: Node) -> Optional[List[Node]]:
+def transform_values(fgraph: FunctionGraph, node: Apply) -> Optional[List[Variable]]:
     """Apply transforms to value variables.
 
     It is assumed that the input value variables correspond to forward
@@ -245,10 +266,8 @@ class TransformValuesRewrite(GraphRewriter):
         return self.default_transform_rewrite.rewrite(fgraph)
 
 
-class MeasurableTransform(MeasurableElemwise):
-    """A placeholder used to specify a log-likelihood for a transformed measurable variable"""
-
-    valid_scalar_types = (Exp, Log, Add, Mul)
+class MeasurableElemwiseTransform(MeasurableElemwise):
+    """A placeholder used to specify a log-likelihood for a transformed `Elemwise`."""
 
     # Cannot use `transform` as name because it would clash with the property added by
     # the `TransformValuesRewrite`
@@ -263,14 +282,16 @@ class MeasurableTransform(MeasurableElemwise):
         super().__init__(*args, **kwargs)
 
 
-@_get_measurable_outputs.register(MeasurableTransform)
-def _get_measurable_outputs_Transform(op, node):
+@_get_measurable_outputs.register(MeasurableElemwiseTransform)
+def _get_measurable_outputs_ElemwiseTransform(op, node):
     return [node.default_output()]
 
 
-@_logprob.register(MeasurableTransform)
-def measurable_transform_logprob(op: MeasurableTransform, values, *inputs, **kwargs):
-    """Compute the log-probability graph for a `MeasurabeTransform`."""
+@_logprob.register(MeasurableElemwiseTransform)
+def measurable_elemwise_logprob(
+    op: MeasurableElemwiseTransform, values, *inputs, **kwargs
+):
+    """Compute the log-probability graph for a `MeasurableElemwiseTransform`."""
     # TODO: Could other rewrites affect the order of inputs?
     (value,) = values
     other_inputs = list(inputs)
@@ -286,18 +307,151 @@ def measurable_transform_logprob(op: MeasurableTransform, values, *inputs, **kwa
     return input_logprob + jacobian
 
 
-@node_rewriter([Elemwise])
-def find_measurable_transforms(
-    fgraph: FunctionGraph, node: Node
-) -> Optional[List[Node]]:
-    """Find measurable transformations from Elemwise operators."""
-    scalar_op = node.op.scalar_op
-    if not isinstance(scalar_op, MeasurableTransform.valid_scalar_types):
-        return None
+@register_measurable_ir
+@node_rewriter([true_div])
+def measurable_true_div(fgraph, node):
+    r"""Rewrite a `true_div` node to a `MeasurableVariable`.
 
-    # Node was already converted
-    if isinstance(node.op, MeasurableVariable):
-        return None  # pragma: no cover
+    TODO FIXME: We need update/clarify the canonicalization situation so that
+    these can be reliably rewritten as products of reciprocals.
+
+    """
+    numerator, denominator = node.inputs
+
+    reciprocal_denominator = at.reciprocal(denominator)
+    # `denominator` is measurable
+    res = measurable_reciprocal.transform(fgraph, reciprocal_denominator.owner)
+    if res:
+        return measurable_mul.transform(fgraph, at.mul(numerator, res[0]).owner)
+
+    # `numerator` is measurable
+    return measurable_mul.transform(
+        fgraph, at.mul(numerator, reciprocal_denominator).owner
+    )
+
+
+@register_measurable_ir
+@node_rewriter([sub])
+def measurable_sub(fgraph, node):
+    r"""Rewrite a `sub` node to a `MeasurableVariable`.
+
+    TODO FIXME: We need update/clarify the canonicalization situation so that
+    these can be reliably rewritten as products of reciprocals.
+
+    """
+    minuend, subtrahend = node.inputs
+
+    mul_subtrahend = at.mul(-1, subtrahend)
+
+    # `subtrahend` is measurable
+    res = measurable_mul.transform(fgraph, mul_subtrahend.owner)
+    if res:
+        return measurable_add.transform(fgraph, at.add(minuend, res[0]).owner)
+
+    # TODO FIXME: `local_add_canonizer` will unreliably rewrite expressions like
+    # `x - y` to `-y + x` (e.g. apparently when `y` is a constant?) and, as a result,
+    # this will not be reached.  We're leaving this in just in case, but we
+    # ultimately need to fix Aesara's canonicalizations.
+
+    # `minuend` is measurable
+    return measurable_add.transform(fgraph, at.add(minuend, mul_subtrahend).owner)
+
+
+@register_measurable_ir
+@node_rewriter([exp])
+def measurable_exp(fgraph, node):
+    """Rewrite an `exp` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *args):
+        return ExpTransform(), (measurable_input,)
+
+    return construct_elemwise_transform(fgraph, node, transform)
+
+
+@register_measurable_ir
+@node_rewriter([log])
+def measurable_log(fgraph, node):
+    """Rewrite a `log` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *args):
+        return LogTransform(), (measurable_input,)
+
+    return construct_elemwise_transform(fgraph, node, transform)
+
+
+@register_measurable_ir
+@node_rewriter([add])
+def measurable_add(fgraph, node):
+    """Rewrite an `add` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *other_inputs):
+        transform_inputs = (
+            measurable_input,
+            at.add(*other_inputs) if len(other_inputs) > 1 else other_inputs[0],
+        )
+        transform = LocTransform(
+            transform_args_fn=lambda *inputs: inputs[-1],
+        )
+        return transform, transform_inputs
+
+    return construct_elemwise_transform(fgraph, node, transform)
+
+
+@register_measurable_ir
+@node_rewriter([mul])
+def measurable_mul(fgraph, node):
+    """Rewrite a `mul` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *other_inputs):
+        transform_inputs = (
+            measurable_input,
+            at.mul(*other_inputs) if len(other_inputs) > 1 else other_inputs[0],
+        )
+        return (
+            ScaleTransform(
+                transform_args_fn=lambda *inputs: inputs[-1],
+            ),
+            transform_inputs,
+        )
+
+    return construct_elemwise_transform(fgraph, node, transform)
+
+
+@register_measurable_ir
+@node_rewriter([reciprocal])
+def measurable_reciprocal(fgraph, node):
+    """Rewrite a `reciprocal` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *other_inputs):
+        return ReciprocalTransform(), (measurable_input,)
+
+    return construct_elemwise_transform(fgraph, node, transform)
+
+
+def construct_elemwise_transform(
+    fgraph: FunctionGraph,
+    node: Apply,
+    transform_fn: "TransformFnType",
+) -> Optional[List[Variable]]:
+    """Construct a measurable transformation for an `Elemwise` node.
+
+    Parameters
+    ----------
+    fgraph
+        The `FunctionGraph` in which `node` resides.
+    node
+        The `Apply` node to be converted.
+    transform_fn
+        A function that takes a single measurable input and all the remaining
+        inputs and returns a transform object and transformed inputs.
+
+    Returns
+    -------
+    A new variable with an `Apply` node with a `MeasurableElemwiseTransform`
+    that replaces `node`.
+
+    """
+    scalar_op = node.op.scalar_op
 
     rv_map_feature: Optional[PreserveRVMappings] = getattr(
         fgraph, "preserve_rv_mappings", None
@@ -320,11 +474,14 @@ def find_measurable_transforms(
     measurable_input: TensorVariable = measurable_inputs[0]
 
     # Do not apply rewrite to discrete variables
+    # TODO: Formalize this restriction better.
     if measurable_input.type.dtype.startswith("int"):
         return None
 
     # Check that other inputs are not potentially measurable, in which case this rewrite
     # would be invalid
+    # TODO FIXME: This is rather costly and redundant; find a way to avoid it
+    # or make it cheaper.
     other_inputs = tuple(inp for inp in node.inputs if inp is not measurable_input)
     if any(
         ancestor_node
@@ -346,24 +503,9 @@ def find_measurable_transforms(
     measurable_input = assign_custom_measurable_outputs(measurable_input.owner)
 
     measurable_input_idx = 0
-    transform_inputs: Tuple[TensorVariable, ...] = (measurable_input,)
-    transform: RVTransform
-    if isinstance(scalar_op, Exp):
-        transform = ExpTransform()
-    elif isinstance(scalar_op, Log):
-        transform = LogTransform()
-    elif isinstance(scalar_op, Add):
-        transform_inputs = (measurable_input, at.add(*other_inputs))
-        transform = LocTransform(
-            transform_args_fn=lambda *inputs: inputs[-1],
-        )
-    else:
-        transform_inputs = (measurable_input, at.mul(*other_inputs))
-        transform = ScaleTransform(
-            transform_args_fn=lambda *inputs: inputs[-1],
-        )
+    transform, transform_inputs = transform_fn(measurable_input, *other_inputs)
 
-    transform_op = MeasurableTransform(
+    transform_op = MeasurableElemwiseTransform(
         scalar_op=scalar_op,
         transform=transform,
         measurable_input_idx=measurable_input_idx,
@@ -372,15 +514,6 @@ def find_measurable_transforms(
     transform_out.name = node.outputs[0].name
 
     return [transform_out]
-
-
-measurable_ir_rewrites_db.register(
-    "find_measurable_transforms",
-    find_measurable_transforms,
-    0,
-    "basic",
-    "transform",
-)
 
 
 class LocTransform(RVTransform):
@@ -444,6 +577,19 @@ class ExpTransform(RVTransform):
 
     def log_jac_det(self, value, *inputs):
         return -at.log(value)
+
+
+class ReciprocalTransform(RVTransform):
+    name = "reciprocal"
+
+    def forward(self, value, *inputs):
+        return at.reciprocal(value)
+
+    def backward(self, value, *inputs):
+        return at.reciprocal(value)
+
+    def log_jac_det(self, value, *inputs):
+        return -2 * at.log(value)
 
 
 class IntervalTransform(RVTransform):

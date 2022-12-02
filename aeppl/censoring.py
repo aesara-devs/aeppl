@@ -1,13 +1,15 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import aesara.tensor as at
 import numpy as np
 from aesara.graph.basic import Node
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import node_rewriter
-from aesara.scalar.basic import Ceil, Clip, Floor, RoundHalfToEven
+from aesara.scalar.basic import ceil as scalar_ceil
 from aesara.scalar.basic import clip as scalar_clip
-from aesara.tensor.elemwise import Elemwise
+from aesara.scalar.basic import floor as scalar_floor
+from aesara.scalar.basic import round_half_to_even as scalar_round_half_to_even
+from aesara.tensor.math import ceil, clip, floor, round_half_to_even
 from aesara.tensor.var import TensorConstant
 
 from aeppl.abstract import (
@@ -18,31 +20,26 @@ from aeppl.abstract import (
 from aeppl.logprob import CheckParameterValue, _logcdf, _logprob, logdiffexp
 from aeppl.rewriting import measurable_ir_rewrites_db
 
+if TYPE_CHECKING:
+    from aesara.graph.basic import Op, Variable
+
 
 class MeasurableClip(MeasurableElemwise):
     """A placeholder used to specify a log-likelihood for a clipped RV sub-graph."""
-
-    valid_scalar_types = (Clip,)
 
 
 measurable_clip = MeasurableClip(scalar_clip)
 
 
-@node_rewriter(tracks=[Elemwise])
+@node_rewriter([clip])
 def find_measurable_clips(
     fgraph: FunctionGraph, node: Node
-) -> Optional[List[MeasurableClip]]:
+) -> Optional[List["Variable"]]:
     # TODO: Canonicalize x[x>ub] = ub -> clip(x, x, ub)
 
     rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
     if rv_map_feature is None:
         return None  # pragma: no cover
-
-    if isinstance(node.op, MeasurableClip):
-        return None  # pragma: no cover
-
-    if not (isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, Clip)):
-        return None
 
     clipped_var = node.outputs[0]
     base_var, lower_bound, upper_bound = node.inputs
@@ -75,7 +72,6 @@ def find_measurable_clips(
 measurable_ir_rewrites_db.register(
     "find_measurable_clips",
     find_measurable_clips,
-    0,
     "basic",
     "censoring",
 )
@@ -147,26 +143,54 @@ def clip_logprob(op, values, base_rv, lower_bound, upper_bound, **kwargs):
 class MeasurableRound(MeasurableElemwise):
     """A placeholder used to specify a log-likelihood for a clipped RV sub-graph."""
 
-    valid_scalar_types = (RoundHalfToEven, Floor, Ceil)
+
+measurable_ceil = MeasurableRound(scalar_ceil)
+measurable_floor = MeasurableRound(scalar_floor)
+measurable_round_half_to_even = MeasurableRound(scalar_round_half_to_even)
 
 
-@node_rewriter(tracks=[Elemwise])
-def find_measurable_roundings(
-    fgraph: FunctionGraph, node: Node
-) -> Optional[List[MeasurableRound]]:
+@node_rewriter([ceil])
+def find_measurable_ceil(fgraph: FunctionGraph, node: Node):
+    return construct_measurable_rounding(fgraph, node, measurable_ceil)
+
+
+@node_rewriter([floor])
+def find_measurable_floor(fgraph: FunctionGraph, node: Node):
+    return construct_measurable_rounding(fgraph, node, measurable_floor)
+
+
+@node_rewriter([round_half_to_even])
+def find_measurable_round_half_to_even(fgraph: FunctionGraph, node: Node):
+    return construct_measurable_rounding(fgraph, node, measurable_round_half_to_even)
+
+
+measurable_ir_rewrites_db.register(
+    "find_measurable_ceil",
+    find_measurable_ceil,
+    "basic",
+    "censoring",
+)
+measurable_ir_rewrites_db.register(
+    "find_measurable_floor",
+    find_measurable_floor,
+    "basic",
+    "censoring",
+)
+measurable_ir_rewrites_db.register(
+    "find_measurable_round_half_to_even",
+    find_measurable_round_half_to_even,
+    "basic",
+    "censoring",
+)
+
+
+def construct_measurable_rounding(
+    fgraph: FunctionGraph, node: Node, rounded_op: "Op"
+) -> Optional[List["Variable"]]:
 
     rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
     if rv_map_feature is None:
         return None  # pragma: no cover
-
-    if isinstance(node.op, MeasurableRound):
-        return None  # pragma: no cover
-
-    if not (
-        isinstance(node.op, Elemwise)
-        and isinstance(node.op.scalar_op, MeasurableRound.valid_scalar_types)
-    ):
-        return None
 
     (rounded_var,) = node.outputs
     (base_var,) = node.inputs
@@ -183,19 +207,9 @@ def find_measurable_roundings(
     # Make base_var unmeasurable
     unmeasurable_base_var = assign_custom_measurable_outputs(base_var.owner)
 
-    rounded_op = MeasurableRound(node.op.scalar_op)
     rounded_rv = rounded_op.make_node(unmeasurable_base_var).default_output()
     rounded_rv.name = rounded_var.name
     return [rounded_rv]
-
-
-measurable_ir_rewrites_db.register(
-    "find_measurable_roundings",
-    find_measurable_roundings,
-    0,
-    "basic",
-    "censoring",
-)
 
 
 @_logprob.register(MeasurableRound)
@@ -226,15 +240,15 @@ def round_logprob(op, values, base_rv, **kwargs):
     """
     (value,) = values
 
-    if isinstance(op.scalar_op, RoundHalfToEven):
+    if op == measurable_round_half_to_even:
         value = at.round(value)
         value_upper = value + 0.5
         value_lower = value - 0.5
-    elif isinstance(op.scalar_op, Floor):
+    elif op == measurable_floor:
         value = at.floor(value)
         value_upper = value + 1.0
         value_lower = value
-    elif isinstance(op.scalar_op, Ceil):
+    elif op == measurable_ceil:
         value = at.ceil(value)
         value_upper = value
         value_lower = value - 1.0
