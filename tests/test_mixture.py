@@ -37,23 +37,13 @@ def test_mixture_basics():
 
         return locals()
 
-    env = create_mix_model(None, 0)
-    X_rv = env["X_rv"]
+    axis_at = at.lscalar("axis")
+    axis_at.tag.test_value = 0
+    env = create_mix_model((2,), axis_at)
     I_rv = env["I_rv"]
     M_rv = env["M_rv"]
 
-    with pytest.raises(
-        UserWarning,
-        match="Found a random variable that is not",
-    ):
-        conditional_logprob(M_rv, I_rv, X_rv)
-
     with pytest.raises(NotImplementedError):
-        axis_at = at.lscalar("axis")
-        axis_at.tag.test_value = 0
-        env = create_mix_model((2,), axis_at)
-        I_rv = env["I_rv"]
-        M_rv = env["M_rv"]
         joint_logprob(M_rv, I_rv)
 
 
@@ -698,7 +688,8 @@ def test_switch_mixture():
 
     fgraph, _, _ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
 
-    assert isinstance(fgraph.outputs[0].owner.op, MixtureRV)
+    out_rv = fgraph.outputs[0].owner.inputs[0]
+    assert isinstance(out_rv.owner.op, MixtureRV)
     assert not hasattr(
         fgraph.outputs[0].tag, "test_value"
     )  # aesara.config.compute_test_value == "off"
@@ -708,7 +699,8 @@ def test_switch_mixture():
 
     fgraph, _, _ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
 
-    assert fgraph.outputs[0].name == "Z1-mixture"
+    out_rv = fgraph.outputs[0].owner.inputs[0]
+    assert out_rv.name == "Z1-mixture"
 
     # building the identical graph but with a stack to check that mixture computations are identical
 

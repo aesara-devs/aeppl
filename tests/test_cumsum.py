@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats as st
 
-from aeppl import joint_logprob
+from aeppl.joint_logprob import DensityNotFound, joint_logprob
 from tests.utils import assert_no_rvs
 
 
@@ -57,7 +57,7 @@ def test_bernoulli_cumsum(size, axis):
 def test_destructive_cumsum_fails():
     """Test that a cumsum that mixes dimensions fails"""
     x_rv = at.random.normal(size=(2, 2, 2)).cumsum()
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(x_rv)
 
 

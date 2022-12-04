@@ -4,9 +4,13 @@ import aesara.tensor as at
 from aesara.graph.rewriting.basic import node_rewriter
 from aesara.tensor.extra_ops import CumOp
 
-from aeppl.abstract import MeasurableVariable, assign_custom_measurable_outputs
+from aeppl.abstract import (
+    MeasurableVariable,
+    ValuedVariable,
+    assign_custom_measurable_outputs,
+)
 from aeppl.logprob import _logprob, logprob
-from aeppl.rewriting import PreserveRVMappings, measurable_ir_rewrites_db
+from aeppl.rewriting import measurable_ir_rewrites_db
 
 
 class MeasurableCumsum(CumOp):
@@ -50,20 +54,13 @@ def find_measurable_cumsums(fgraph, node) -> Optional[List[MeasurableCumsum]]:
     if isinstance(node.op, MeasurableCumsum):
         return None  # pragma: no cover
 
-    rv_map_feature: Optional[PreserveRVMappings] = getattr(
-        fgraph, "preserve_rv_mappings", None
-    )
-
-    if rv_map_feature is None:
-        return None  # pragma: no cover
-
     rv = node.outputs[0]
 
     base_rv = node.inputs[0]
     if not (
         base_rv.owner
         and isinstance(base_rv.owner.op, MeasurableVariable)
-        and base_rv not in rv_map_feature.rv_values
+        and not isinstance(base_rv, ValuedVariable)
     ):
         return None  # pragma: no cover
 

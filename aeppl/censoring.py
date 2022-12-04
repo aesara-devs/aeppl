@@ -15,13 +15,15 @@ from aesara.tensor.var import TensorConstant
 from aeppl.abstract import (
     MeasurableElemwise,
     MeasurableVariable,
+    ValuedVariable,
     assign_custom_measurable_outputs,
 )
 from aeppl.logprob import CheckParameterValue, _logcdf, _logprob, logdiffexp
 from aeppl.rewriting import measurable_ir_rewrites_db
 
 if TYPE_CHECKING:
-    from aesara.graph.basic import Op, Variable
+    from aesara.graph.basic import Variable
+    from aesara.graph.op import Op
 
 
 class MeasurableClip(MeasurableElemwise):
@@ -37,8 +39,7 @@ def find_measurable_clips(
 ) -> Optional[List["Variable"]]:
     # TODO: Canonicalize x[x>ub] = ub -> clip(x, x, ub)
 
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
-    if rv_map_feature is None:
+    if isinstance(node.op, MeasurableClip):
         return None  # pragma: no cover
 
     clipped_var = node.outputs[0]
@@ -47,7 +48,7 @@ def find_measurable_clips(
     if not (
         base_var.owner
         and isinstance(base_var.owner.op, MeasurableVariable)
-        and base_var not in rv_map_feature.rv_values
+        and not isinstance(base_var, ValuedVariable)
     ):
         return None
 
@@ -190,8 +191,7 @@ def construct_measurable_rounding(
     fgraph: FunctionGraph, node: Node, rounded_op: "Op"
 ) -> Optional[List["Variable"]]:
 
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
-    if rv_map_feature is None:
+    if isinstance(node.op, MeasurableRound):
         return None  # pragma: no cover
 
     (rounded_var,) = node.outputs
@@ -200,7 +200,7 @@ def construct_measurable_rounding(
     if not (
         base_var.owner
         and isinstance(base_var.owner.op, MeasurableVariable)
-        and base_var not in rv_map_feature.rv_values
+        and not isinstance(base_var, ValuedVariable)
         # Rounding only makes sense for continuous variables
         and base_var.dtype.startswith("float")
     ):

@@ -84,9 +84,9 @@ def test_unvalued_ir_reversion():
 
     z_fgraph, _, memo = construct_ir_fgraph(rv_values)
 
-    assert memo[y_rv] in z_fgraph.preserve_rv_mappings.measurable_conversions
+    assert memo[y_rv] in z_fgraph.measurable_conversions
 
-    measurable_y_rv = z_fgraph.preserve_rv_mappings.measurable_conversions[memo[y_rv]]
+    measurable_y_rv = z_fgraph.measurable_conversions[memo[y_rv]]
     assert isinstance(measurable_y_rv.owner.op, MeasurableClip)
 
     # `construct_ir_fgraph` should've reverted the un-valued measurable IR

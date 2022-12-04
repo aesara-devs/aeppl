@@ -5,7 +5,7 @@ import pytest
 import scipy as sp
 import scipy.stats as st
 
-from aeppl import conditional_logprob, joint_logprob
+from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.transforms import LogTransform, TransformValuesRewrite
 from tests.utils import assert_no_rvs
 
@@ -113,25 +113,15 @@ def test_broadcasted_clip_random():
     assert_no_rvs(logp)
 
 
-def test_fail_base_and_clip_have_values():
-    """Test failure when both base_rv and clipped_rv are given value vars"""
-    x_rv = at.random.normal(0, 1)
-    cens_x_rv = at.clip(x_rv, x_rv, 1)
-    cens_x_rv.name = "cens_x"
-
-    with pytest.raises(RuntimeError, match="could not be derived: {cens_x}"):
-        conditional_logprob(cens_x_rv, x_rv)
-
-
 def test_fail_multiple_clip_single_base():
-    """Test failure when multiple clipped_rvs share a single base_rv"""
+    """Test failure when multiple values are assigned to the same clipped term."""
     base_rv = at.random.normal(0, 1)
     cens_rv1 = at.clip(base_rv, -1, 1)
     cens_rv1.name = "cens1"
     cens_rv2 = at.clip(base_rv, -1, 1)
     cens_rv2.name = "cens2"
 
-    with pytest.raises(RuntimeError, match=r"could not be derived: {cens\d}"):
+    with pytest.raises(ValueError):
         conditional_logprob(cens_rv1, cens_rv2)
 
 
@@ -166,8 +156,30 @@ def test_clip_transform():
     assert np.isclose(obs_logp, exp_logp)
 
 
-@pytest.mark.parametrize("rounding_op", (at.round, at.floor, at.ceil))
-def test_rounding(rounding_op):
+@pytest.mark.parametrize(
+    "rounding_op, expected_logp_fn",
+    (
+        (
+            at.round,
+            lambda x_sp, test_value: np.log(
+                x_sp.cdf(test_value + 0.5) - x_sp.cdf(test_value - 0.5)
+            ),
+        ),
+        (
+            at.floor,
+            lambda x_sp, test_value: np.log(
+                x_sp.cdf(test_value + 1.0) - x_sp.cdf(test_value)
+            ),
+        ),
+        (
+            at.ceil,
+            lambda x_sp, test_value: np.log(
+                x_sp.cdf(test_value) - x_sp.cdf(test_value - 1.0)
+            ),
+        ),
+    ),
+)
+def test_rounding(rounding_op, expected_logp_fn):
     loc = 1
     scale = 2
     test_value = np.arange(-3, 4)
@@ -181,14 +193,7 @@ def test_rounding(rounding_op):
     assert logp is not None
 
     x_sp = st.norm(loc, scale)
-    if rounding_op == at.round:
-        expected_logp = np.log(x_sp.cdf(test_value + 0.5) - x_sp.cdf(test_value - 0.5))
-    elif rounding_op == at.floor:
-        expected_logp = np.log(x_sp.cdf(test_value + 1.0) - x_sp.cdf(test_value))
-    elif rounding_op == at.ceil:
-        expected_logp = np.log(x_sp.cdf(test_value) - x_sp.cdf(test_value - 1.0))
-    else:
-        raise NotImplementedError()
+    expected_logp = expected_logp_fn(x_sp, test_value)
 
     assert np.allclose(
         logp.eval({xr_vv: test_value}),

@@ -2,7 +2,7 @@ from typing import Dict, Optional, Tuple
 
 import aesara.tensor as at
 from aesara.compile.mode import optdb
-from aesara.graph.basic import Variable
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import GraphRewriter, node_rewriter
@@ -20,9 +20,8 @@ from aesara.tensor.subtensor import (
     IncSubtensor,
     Subtensor,
 )
-from aesara.tensor.var import TensorVariable
 
-from aeppl.abstract import MeasurableVariable
+from aeppl.abstract import MeasurableVariable, ValuedVariable, valued_variable
 from aeppl.dists import DiracDelta
 from aeppl.utils import indices_from_subtensor
 
@@ -44,37 +43,15 @@ class NoCallbackEquilibriumDB(EquilibriumDB):
         return res
 
 
-class PreserveRVMappings(Feature):
-    r"""Keeps track of random variables and their respective value variables during
-    graph rewrites in `rv_values`
+class MeasurableConversionTracker(Feature):
+    r"""Keeps track of variables that were converted to `MeasurableVariable`\s.
 
-    When a random variable is replaced in a rewrite, this `Feature` automatically
-    updates the `rv_values` mapping, so that the new variable is linked to the
-    original value variable.
-
-    In addition this `Feature` provides functionality to manually update a random
-    and/or value variable. A mapping from the transformed value variables to the
-    the original value variables is kept in `original_values`.
-
-    Likewise, a `measurable_conversions` map is maintained, which holds
+    A `measurable_conversions` map is tracked that holds
     information about un-valued and un-measurable variables that were replaced
     with measurable variables.  This information can be used to revert these
     rewrites.
 
     """
-
-    def __init__(self, rv_values: Dict[TensorVariable, TensorVariable]):
-        """
-        Parameters
-        ==========
-        rv_values
-            Mappings between random variables and their value variables.
-            The keys of this map are what this `Feature` keeps updated.
-            The ``dict`` is updated in-place.
-        """
-        self.rv_values = rv_values
-        self.original_values = {v: v for v in rv_values.values()}
-        self.measurable_conversions: Dict[Variable, Variable] = {}
 
     def on_attach(self, fgraph):
         if hasattr(fgraph, "preserve_rv_mappings"):
@@ -82,55 +59,21 @@ class PreserveRVMappings(Feature):
                 f"{fgraph} already has the `PreserveRVMappings` feature attached."
             )
 
-        fgraph.preserve_rv_mappings = self
-
-    def update_rv_maps(
-        self,
-        old_rv: TensorVariable,
-        new_value: TensorVariable,
-        new_rv: Optional[TensorVariable] = None,
-    ):
-        """Update mappings for a random variable.
-
-        It also creates/updates a map from new value variables to their
-        original value variables.
-
-        Parameters
-        ==========
-        old_rv
-            The random variable whose mappings will be updated.
-        new_value
-            The new value variable that will replace the current one assigned
-            to `old_rv`.
-        new_rv
-            When non-``None``, `old_rv` will also be replaced with `new_rv` in
-            the mappings, as well.
-        """
-        old_value = self.rv_values.pop(old_rv)
-        original_value = self.original_values.pop(old_value)
-
-        if new_rv is None:
-            new_rv = old_rv
-
-        self.rv_values[new_rv] = new_value
-        self.original_values[new_value] = original_value
+        fgraph.measurable_conversions = {}
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        """
-        Whenever a node is replaced during rewrite, we check if it had a value
-        variable associated with it and map it to the new node.
-        """
-        r_value_var = self.rv_values.pop(r, None)
-        if r_value_var is not None:
-            self.rv_values[new_r] = r_value_var
-        elif (
-            new_r not in self.rv_values
-            and r.owner
+        if (
+            r.owner
             and new_r.owner
-            and not isinstance(r.owner.op, MeasurableVariable)
+            and not isinstance(r.owner.op, (ValuedVariable, MeasurableVariable))
             and isinstance(new_r.owner.op, MeasurableVariable)
+            and not any(
+                isinstance(node.op, ValuedVariable)
+                for node, idx in fgraph.clients[new_r]
+                if isinstance(node, Apply)
+            )
         ):
-            self.measurable_conversions[r] = new_r
+            fgraph.measurable_conversions[r] = new_r
 
 
 @register_canonicalize
@@ -165,7 +108,7 @@ def local_remove_DiracDelta(fgraph, node):
     return [dd_val]
 
 
-@node_rewriter(inc_subtensor_ops)
+@node_rewriter([ValuedVariable])
 def incsubtensor_rv_replace(fgraph, node):
     r"""Replace `*IncSubtensor*` `Op`\s and their value variables for log-probability calculations.
 
@@ -183,37 +126,32 @@ def incsubtensor_rv_replace(fgraph, node):
 
     This provides a means of specifying "missing data", for instance.
     """
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+    incsubtensor_var, value_var = node.inputs
+    subtensor_node = incsubtensor_var.owner
 
-    if rv_map_feature is None:
+    if subtensor_node is None or not isinstance(subtensor_node.op, inc_subtensor_ops):
         return None  # pragma: no cover
 
-    if not isinstance(node.op, inc_subtensor_ops):
-        return None  # pragma: no cover
-
-    rv_var = node.outputs[0]
-    if rv_var not in rv_map_feature.rv_values:
-        return None  # pragma: no cover
-
-    base_rv_var = node.inputs[0]
+    base_rv_var = subtensor_node.inputs[0]
 
     if not (
         base_rv_var.owner
         and isinstance(base_rv_var.owner.op, MeasurableVariable)
-        and base_rv_var not in rv_map_feature.rv_values
+        and not isinstance(base_rv_var, ValuedVariable)
     ):
         return None  # pragma: no cover
 
-    data = node.inputs[1]
-    idx = indices_from_subtensor(getattr(node.op, "idx_list", None), node.inputs[2:])
+    data = subtensor_node.inputs[1]
+    idx = indices_from_subtensor(
+        getattr(subtensor_node.op, "idx_list", None), subtensor_node.inputs[2:]
+    )
 
     # Create a new value variable with the indices `idx` set to `data`
-    value_var = rv_map_feature.rv_values[rv_var]
     new_value_var = at.set_subtensor(value_var[idx], data)
-    rv_map_feature.update_rv_maps(rv_var, new_value_var, base_rv_var)
 
-    # Return the `RandomVariable` being indexed
-    return [base_rv_var]
+    new_base_rv_var = valued_variable(base_rv_var, new_value_var)
+
+    return [new_base_rv_var]
 
 
 logprob_rewrites_db = SequenceDB()
@@ -248,7 +186,7 @@ def construct_ir_fgraph(
     r"""Construct a `FunctionGraph` in measurable IR form for the keys in `rv_values`.
 
     A custom IR rewriter can be specified. By default,
-    `logprob_rewrites_db.query(RewriteDatabaseQuery(include=["basic"]))` is used.
+    ``logprob_rewrites_db.query(RewriteDatabaseQuery(include=["basic"]))`` is used.
 
     Our measurable IR takes the form of an Aesara graph that is more-or-less
     equivalent to a given Aesara graph (i.e. the keys of `rv_values`) but
@@ -279,47 +217,63 @@ def construct_ir_fgraph(
     A `FunctionGraph` of the measurable IR, a copy of `rv_values` containing
     the new, cloned versions of the original variables in `rv_values`, and
     a ``dict`` mapping all the original variables to their cloned values in
-    `FunctionGraph`.
+    the `FunctionGraph`.
     """
 
-    # Since we're going to clone the entire graph, we need to keep a map from
-    # the old nodes to the new ones; otherwise, we won't be able to use
+    # We're going to create a `FunctionGraph` that effectively represents the
+    # joint log-probability of all the random variables assigned values in
     # `rv_values`.
-    # We start the `dict` with mappings from the value variables to themselves,
-    # to prevent them from being cloned.
-    memo = {v: v for v in rv_values.values()}
+    # The `FunctionGraph`'s outputs will be `ValuedVariable`s.  This serves to
+    # associate a random variable with its value and facilitate
+    # rewrites/transformations of both simultaneously.
+    # The `FunctionGraph` will be transformed by rewrites so that
+    # log-probabilities can be assigned to/derived for its outputs.
+
+    # We clone the random variables that we'll use as `FunctionGraph` outputs
+    # so that they're distinct nodes in the graph.  This allows us to replace
+    # all instances of the original random variables with their value
+    # variables, while leaving the output clones untouched.
+    rv_value_clones = {}
+    measured_outputs = {}
+    memo = {}
+    for rv, val in rv_values.items():
+        rv_node_clone = rv.owner.clone()
+        rv_clone = rv_node_clone.outputs[rv.owner.outputs.index(rv)]
+        rv_value_clones[rv_clone] = val
+        measured_outputs[rv] = valued_variable(rv_clone, val)
+        # Prevent value variables from being cloned
+        memo[val] = val
 
     # We add `ShapeFeature` because it will get rid of references to the old
     # `RandomVariable`s that have been lifted; otherwise, it will be difficult
     # to give good warnings when an unaccounted for `RandomVariable` is
     # encountered
     fgraph = FunctionGraph(
-        outputs=list(rv_values.keys()),
+        outputs=tuple(measured_outputs.values()),
+        features=[ShapeFeature(), MeasurableConversionTracker()],
         clone=True,
         memo=memo,
         copy_orphans=False,
         copy_inputs=False,
-        features=[ShapeFeature()],
     )
 
     # Update `rv_values` so that it uses the new cloned variables
-    rv_values = {memo[k]: v for k, v in rv_values.items()}
+    rv_value_clones = {memo[k]: v for k, v in rv_value_clones.items()}
 
-    # This `Feature` preserves the relationships between the original
-    # random variables (i.e. keys in `rv_values`) and the new ones
-    # produced when `Op`s are lifted through them.
-    rv_remapper = PreserveRVMappings(rv_values)
-    fgraph.attach_feature(rv_remapper)
+    # Replace valued non-output variables with their values
+    fgraph.replace_all(
+        [(memo[rv], val) for rv, val in measured_outputs.items() if rv in memo],
+        reason="valued-non-outputs-replace",
+        import_missing=True,
+    )
 
     if ir_rewriter is None:
         ir_rewriter = logprob_rewrites_db.query(RewriteDatabaseQuery(include=["basic"]))
+
     ir_rewriter.rewrite(fgraph)
 
-    if rv_remapper.measurable_conversions:
-        # Undo un-valued measurable IR rewrites
-        new_to_old = tuple(
-            (v, k) for k, v in rv_remapper.measurable_conversions.items()
-        )
-        fgraph.replace_all(new_to_old, reason="construct_ir_fgraph")
+    # Undo un-valued measurable IR rewrites
+    new_to_old = tuple((v, k) for k, v in fgraph.measurable_conversions.items())
+    fgraph.replace_all(new_to_old, reason="undo-unvalued-measurables")
 
-    return fgraph, rv_values, memo
+    return fgraph, rv_value_clones, memo
