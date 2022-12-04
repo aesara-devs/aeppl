@@ -1,5 +1,3 @@
-import warnings
-
 import aesara
 import aesara.tensor as at
 import numpy as np
@@ -212,41 +210,72 @@ def test_joint_logprob_subtensor():
 
 
 def test_persist_inputs():
-    """Make sure we don't unnecessarily clone variables."""
+    """Make sure we don't unnecessarily clone input variables.
+
+    In earlier versions, we preserved the identity of entire value-variable
+    graphs in the log-probability output, and not just the inputs of those
+    graphs.  Now, since everything is canonicalized, "realized" value-variable
+    graphs may not be identical in the output of calls to `conditional_logprob`
+    and related functions.
+
+    """
     x = at.scalar("x")
     beta_rv = at.random.normal(0, 1, name="beta")
     Y_rv = at.random.normal(beta_rv * x, 1, name="y")
 
     logp, (beta_vv, y_vv) = joint_logprob(beta_rv, Y_rv)
 
+    # Make sure an standard input variable is preserved in the output (i.e.  we
+    # can't reasonably replace inputs held by the caller).
     assert x in ancestors([logp])
 
-    # Make sure we don't clone value variables when they're graphs.
+    # Now, we do the same for inputs within a "realized" value-variable graph.
     y_vv_2 = y_vv * 2
+    y_vv_2.name = "y_vv_2"
+
     logp_2, (beta_vv,) = joint_logprob(beta_rv, realized={Y_rv: y_vv_2})
 
-    assert y_vv_2 in ancestors([logp_2])
-    assert y_vv in ancestors([logp_2])
+    logp_2_ancestors = tuple(ancestors([logp_2]))
+    assert y_vv in logp_2_ancestors
+    # The entire "realized" value-variable graph may not be preserved in the
+    # output, as is the case here when `y_vv * 2` is canonicalized to `2 *
+    # y_vv`.
+    # assert y_vv_2 in logp_2_ancestors
 
 
-def test_warn_random_not_found():
+def test_random_in_logprob():
+    """Make sure we can have `RandomVariable`s in log-probabilities."""
+
     x_rv = at.random.normal(name="x")
     y_rv = at.random.normal(x_rv, 1, name="y")
 
-    with pytest.warns(UserWarning):
-        conditional_logprob(y_rv)
+    logps, vvars = conditional_logprob(y_rv)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        conditional_logprob(y_rv, warn_missing_rvs=False)
+    assert len(vvars) == 1
+    assert any(
+        var.owner.op == at.random.normal
+        for var in ancestors([logps[y_rv]])
+        if var.owner
+    )
 
 
-def test_multiple_rvs_to_same_value_raises():
+def test_multiple_rvs_with_same_value():
+    """Make sure we can use the same value for two different measurable terms."""
     x_rv1 = at.random.normal(name="x1")
     x_rv2 = at.random.normal(name="x2")
-    x = x_rv1.type()
+    x = x_rv1.clone()
     x.name = "x"
 
-    msg = "More than one logprob factor was assigned to the random variable x"
-    with pytest.raises(ValueError, match=msg):
-        joint_logprob(realized={x_rv1: x, x_rv2: x})
+    logps, vvars = conditional_logprob(realized={x_rv1: x, x_rv2: x})
+
+    assert not vvars
+    assert equal_computations([logps[x_rv1]], [logps[x_rv2]])
+
+
+def test_deprecations():
+    X = at.random.normal(name="X")
+    x = X.clone()
+    x.name = "x"
+
+    with pytest.warns(DeprecationWarning):
+        conditional_logprob(realized={X: x}, warn_missing_rvs=True)

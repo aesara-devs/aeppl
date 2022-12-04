@@ -1,10 +1,9 @@
 from copy import copy
-from typing import Callable, Dict, Iterable, List, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, Iterable, List, Tuple, cast
 
 import aesara
 import aesara.tensor as at
 import numpy as np
-from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
 from aesara.graph.rewriting.basic import node_rewriter
@@ -17,7 +16,12 @@ from aesara.tensor.subtensor import Subtensor, indices_from_subtensor
 from aesara.tensor.var import TensorVariable
 from aesara.updates import OrderedUpdates
 
-from aeppl.abstract import MeasurableVariable, _get_measurable_outputs
+from aeppl.abstract import (
+    MeasurableVariable,
+    ValuedVariable,
+    _get_measurable_outputs,
+    valued_variable,
+)
 from aeppl.joint_logprob import conditional_logprob
 from aeppl.logprob import _logprob
 from aeppl.rewriting import (
@@ -26,9 +30,16 @@ from aeppl.rewriting import (
     measurable_ir_rewrites_db,
 )
 
+if TYPE_CHECKING:
+    from aesara.graph.basic import Apply, Variable
+
 
 class MeasurableScan(Scan):
     """A placeholder used to specify a log-likelihood for a scan sub-graph."""
+
+    def __str__(self):
+        res = super().__str__()
+        return f"measurable_{res}"
 
 
 MeasurableVariable.register(MeasurableScan)
@@ -268,7 +279,7 @@ def logprob_ScanRV(op, values, *inputs, name=None, **kwargs):
         value_map: Dict[TensorVariable, TensorVariable]
     ) -> TensorVariable:
         """Create a log-likelihood inner-output for a `Scan`."""
-        logp_parts, _ = conditional_logprob(realized=value_map, warn_missing_rvs=False)
+        logp_parts, _ = conditional_logprob(realized=value_map)
         return logp_parts.values()
 
     logp_scan_args = convert_outer_out_to_in(
@@ -314,24 +325,16 @@ def find_measurable_scans(fgraph, node):
     parts of a `Scan`\s outputs (e.g. everything except the initial values).
     """
 
-    if not isinstance(node.op, Scan):
-        return None
-
     if isinstance(node.op, MeasurableScan):
         return None
 
     if not hasattr(fgraph, "shape_feature"):
         return None  # pragma: no cover
 
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
-
-    if rv_map_feature is None:
-        return None  # pragma: no cover
-
     curr_scanargs = ScanArgs.from_node(node)
 
     # Find the un-output `MeasurableVariable`s created in the inner-graph
-    clients: Dict[Variable, List[Variable]] = {}
+    clients: Dict["Variable", List["Variable"]] = {}
 
     local_fgraph_topo = aesara.graph.basic.io_toposort(
         curr_scanargs.inner_inputs,
@@ -350,105 +353,6 @@ def find_measurable_scans(fgraph, node):
                 # TODO: Why can't we make this a `MeasurableScan`?
                 return None
 
-    if not any(out in rv_map_feature.rv_values for out in node.outputs):
-        # We need to remap user inputs that have been specified in terms of
-        # `Subtensor`s of this `Scan`'s node's outputs.
-        #
-        # For example, the output that the user got was something like
-        # `out[1:]` for `outputs_info = [{"initial": x0, "taps": [-1]}]`, so
-        # they likely passed `{out[1:]: x_1T_vv}` to `joint_logprob`.
-        # Since `out[1:]` isn't really the output of a `Scan`, but a
-        # `Subtensor` of the output `out` of a `Scan`, we need to account for
-        # that.
-
-        # Get any `Subtensor` outputs that have been applied to outputs of this
-        # `Scan` (and get the corresponding indices of the outputs from this
-        # `Scan`)
-        output_clients: List[Tuple[Variable, int]] = sum(
-            [
-                [
-                    # This is expected to work for `Subtensor` `Op`s,
-                    # because they only ever have one output
-                    (cl.default_output(), i)
-                    for cl, _ in fgraph.get_clients(out)
-                    if isinstance(cl.op, Subtensor)
-                ]
-                for i, out in enumerate(node.outputs)
-            ],
-            [],
-        )
-
-        # The second items in these tuples are the value variables mapped to
-        # the *user-specified* measurable variables (i.e. the first items) that
-        # are `Subtensor`s of the outputs of this `Scan`.  The second items are
-        # the index of the corresponding output of this `Scan` node.
-        indirect_rv_vars = [
-            (out, rv_map_feature.rv_values[out], out_idx)
-            for out, out_idx in output_clients
-            if out in rv_map_feature.rv_values
-        ]
-
-        if not indirect_rv_vars:
-            return None
-
-        # We need this for the `clone` in the loop that follows
-        if aesara.config.compute_test_value != "off":
-            compute_test_value(node)
-
-        # We're going to replace the user's random variable/value variable mappings
-        # with ones that map directly to outputs of this `Scan`.
-        for rv_var, val_var, out_idx in indirect_rv_vars:
-
-            # The full/un-`Subtensor`ed `Scan` output that we need to use
-            full_out = node.outputs[out_idx]
-
-            assert rv_var.owner.inputs[0] == full_out
-
-            # A new value variable that spans the full output.
-            # We don't want the old graph to appear in the new log-probability
-            # graph, so we use the shape feature to (hopefully) get the shape
-            # without the entire `Scan` itself.
-            full_out_shape = tuple(
-                fgraph.shape_feature.get_shape(full_out, i)
-                for i in range(full_out.ndim)
-            )
-            new_val_var = at.empty(full_out_shape, dtype=full_out.dtype)
-
-            # Set the parts of this new value variable that applied to the
-            # user-specified value variable to the user's value variable
-            subtensor_indices = indices_from_subtensor(
-                rv_var.owner.inputs[1:], rv_var.owner.op.idx_list
-            )
-            # E.g. for a single `-1` TAPS, `s_0T[1:] = s_1T` where `s_0T` is
-            # `new_val_var` and `s_1T` is the user-specified value variable
-            # that only spans times `t=1` to `t=T`.
-            new_val_var = at.set_subtensor(new_val_var[subtensor_indices], val_var)
-
-            # This is the outer-input that sets `s_0T[i] = taps[i]` where `i`
-            # is a TAP index (e.g. a TAP of `-1` maps to index `0` in a vector
-            # of the entire series).
-            var_info = curr_scanargs.find_among_fields(full_out)
-            alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
-            outer_input_var = getattr(curr_scanargs, f"outer_in_{alt_type}")[
-                var_info.index
-            ]
-
-            # These outer-inputs are using by `aesara.scan.utils.expand_empty`, and
-            # are expected to consist of only a single `set_subtensor` call.
-            # That's why we can simply replace the first argument of the node.
-            assert isinstance(outer_input_var.owner.op, inc_subtensor_ops)
-
-            # We're going to set those values on our `new_val_var` so that it can
-            # serve as a complete replacement for the old input `outer_input_var`.
-            # from aesara.graph import clone_replace
-            #
-            new_val_var = outer_input_var.owner.clone_with_new_inputs(
-                [new_val_var] + outer_input_var.owner.inputs[1:]
-            ).default_output()
-
-            # Replace the mapping
-            rv_map_feature.update_rv_maps(rv_var, new_val_var, full_out)
-
     op = MeasurableScan(
         curr_scanargs.inner_inputs,
         curr_scanargs.inner_outputs,
@@ -457,7 +361,133 @@ def find_measurable_scans(fgraph, node):
     )
     new_node = op.make_node(*curr_scanargs.outer_inputs)
 
-    return dict(zip(node.outputs, new_node.outputs))
+    return update_scan_value_vars(fgraph, curr_scanargs, node, new_node)
+
+
+def update_scan_value_vars(
+    fgraph, curr_scanargs: ScanArgs, node: "Apply", new_node: "Apply"
+) -> Dict["Variable", "Variable"]:
+    r"""Remap user inputs that have been specified in terms of `Subtensor`\s of this `Scan`'s node's outputs.
+
+    For example, the output that the user got was something like ``out[1:]``
+    for ``outputs_info = [{"initial": x0, "taps": [-1]}]``, so they likely
+    passed ``{out[1:]: x_1T_vv}`` to ``joint_logprob``.  Since ``out[1:]``
+    isn't really the output of a `Scan`, but a `Subtensor` of the output `out`
+    of a `Scan`, we need to account for that.  We do so by replacing the
+    bound/valued `Subtensor` with the un-sliced `Scan` outputs and a
+    sufficiently padded version of the bound value.
+
+    TODO: Find a simpler--and perhaps more general--way of handling these
+    `Subtensor`\s.
+
+    """
+
+    # if not any(isinstance(out, ValuedVariable) for out in node.outputs):
+    #     return new_node.outputs
+
+    # Get any `Subtensor` outputs that have been applied to outputs of this
+    # `Scan` (and get the corresponding indices of the outputs from this
+    # `Scan`)
+    output_clients: List[Tuple["Variable", int]] = sum(
+        [
+            [
+                # This is expected to work for `Subtensor` `Op`s,
+                # because they only ever have one output
+                (cl.default_output(), i)
+                for cl, _ in fgraph.get_clients(out)
+                if isinstance(cl.op, Subtensor)
+            ]
+            for i, out in enumerate(node.outputs)
+        ],
+        [],
+    )
+
+    indirect_rv_vars = [
+        (out.default_output(), out_idx)
+        for out, out_idx in sum(
+            [
+                [
+                    (oo, o_i)
+                    for oo, _ in fgraph.get_clients(o_n)
+                    if isinstance(oo.op, ValuedVariable)
+                ]
+                for o_n, o_i in output_clients
+            ],
+            [],
+        )
+    ]
+
+    replacements = dict(zip(node.outputs, new_node.outputs))
+
+    if not indirect_rv_vars:
+        return replacements
+
+    # We need this for the `clone` in the loop that follows
+    if aesara.config.compute_test_value != "off":
+        compute_test_value(node)
+
+    # We're going to replace the user's random variable/value variable mappings
+    # with ones that map directly to outputs of this `Scan`.
+    for rv_val_var, out_idx in indirect_rv_vars:
+
+        # `rv_var` is the `*Subtensor*`
+        rv_var, val_var = rv_val_var.owner.inputs
+
+        # The full/un-`Subtensor`ed `Scan` output that we need to use
+        full_out = node.outputs[out_idx]
+
+        assert rv_var.owner.inputs[0] == full_out
+
+        # A new value variable that spans the full output.
+        # We don't want the old graph to appear in the new log-probability
+        # graph, so we use the shape feature to (hopefully) get the shape
+        # without the entire `Scan` itself.
+        full_out_shape = tuple(
+            fgraph.shape_feature.get_shape(full_out, i) for i in range(full_out.ndim)
+        )
+        new_val_var = at.empty(full_out_shape, dtype=full_out.dtype)
+
+        # Set the parts of this new value variable that applied to the
+        # user-specified value variable to the user's value variable
+        subtensor_indices = indices_from_subtensor(
+            rv_var.owner.inputs[1:], rv_var.owner.op.idx_list
+        )
+        # E.g. for a single `-1` TAPS, `s_0T[1:] = s_1T` where `s_0T` is
+        # `new_val_var` and `s_1T` is the user-specified value variable
+        # that only spans times `t=1` to `t=T`.
+        new_val_var = at.set_subtensor(new_val_var[subtensor_indices], val_var)
+
+        # This is the outer-input that sets `s_0T[i] = taps[i]` where `i`
+        # is a TAP index (e.g. a TAP of `-1` maps to index `0` in a vector
+        # of the entire series).
+        var_info = curr_scanargs.find_among_fields(full_out)
+        alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
+        outer_input_var = getattr(curr_scanargs, f"outer_in_{alt_type}")[var_info.index]
+
+        # These outer-inputs are using by `aesara.scan.utils.expand_empty`, and
+        # are expected to consist of only a single `set_subtensor` call.
+        # That's why we can simply replace the first argument of the node.
+        assert isinstance(outer_input_var.owner.op, inc_subtensor_ops)
+
+        # We're going to set those values on our `new_val_var` so that it can
+        # serve as a complete replacement for the old input `outer_input_var`.
+        # from aesara.graph import clone_replace
+        #
+        new_val_var = outer_input_var.owner.clone_with_new_inputs(
+            [new_val_var] + outer_input_var.owner.inputs[1:]
+        ).default_output()
+
+        new_full_out = new_node.outputs[out_idx]
+        new_full_out = valued_variable.make_node(
+            new_full_out, new_val_var
+        ).default_output()
+
+        del replacements[full_out]
+
+        # We have to replace the output of the `ValuedVariable` in this case
+        replacements[rv_val_var] = new_full_out
+
+    return replacements
 
 
 @node_rewriter([Scan])

@@ -29,10 +29,13 @@ from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType
 from aesara.tensor.var import TensorVariable
 
-from aeppl.abstract import MeasurableVariable, assign_custom_measurable_outputs
+from aeppl.abstract import (
+    MeasurableVariable,
+    ValuedVariable,
+    assign_custom_measurable_outputs,
+)
 from aeppl.logprob import _logprob, logprob
 from aeppl.rewriting import local_lift_DiracDelta, logprob_rewrites_db, subtensor_ops
-from aeppl.tensor import naive_bcast_rv_lift
 from aeppl.utils import get_constant_value
 
 
@@ -170,7 +173,6 @@ def rv_pull_down(x: TensorVariable, dont_touch_vars=None) -> TensorVariable:
         [
             local_dimshuffle_rv_lift,
             local_subtensor_rv_lift,
-            naive_bcast_rv_lift,
             local_lift_DiracDelta,
         ],
         x,
@@ -254,16 +256,11 @@ def mixture_replace(fgraph, node):
     From these terms, new terms ``Z_rv[i] = mixture_comps[i][i == I_rv]`` are
     created for each ``i`` in ``enumerate(mixture_comps)``.
     """
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
-
-    if rv_map_feature is None:
-        return None  # pragma: no cover
-
     old_mixture_rv = node.default_output()
 
     mixture_res, join_axis = get_stack_mixture_vars(node)
 
-    if mixture_res is None or any(rv in rv_map_feature.rv_values for rv in mixture_res):
+    if mixture_res is None or any(isinstance(rv, ValuedVariable) for rv in mixture_res):
         return None  # pragma: no cover
 
     mixing_indices = node.inputs[1:]
@@ -307,11 +304,6 @@ def mixture_replace(fgraph, node):
 
 @node_rewriter((Elemwise,))
 def switch_mixture_replace(fgraph, node):
-    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
-
-    if rv_map_feature is None:
-        return None  # pragma: no cover
-
     if not isinstance(node.op.scalar_op, Switch):
         return None  # pragma: no cover
 
@@ -324,7 +316,7 @@ def switch_mixture_replace(fgraph, node):
         if not (
             component_rv.owner
             and isinstance(component_rv.owner.op, MeasurableVariable)
-            and component_rv not in rv_map_feature.rv_values
+            and not isinstance(component_rv, ValuedVariable)
         ):
             return None
         new_node = assign_custom_measurable_outputs(component_rv.owner)

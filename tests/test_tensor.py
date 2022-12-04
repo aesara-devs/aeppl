@@ -3,29 +3,13 @@ import numpy as np
 import pytest
 from aesara import tensor as at
 from aesara.graph import RewriteDatabaseQuery
-from aesara.graph.rewriting.basic import in2out
-from aesara.graph.rewriting.utils import rewrite_graph
-from aesara.tensor.extra_ops import BroadcastTo
 from scipy import stats as st
 
-from aeppl import conditional_logprob, joint_logprob
+from aeppl.joint_logprob import DensityNotFound, conditional_logprob, joint_logprob
 from aeppl.rewriting import logprob_rewrites_db
-from aeppl.tensor import naive_bcast_rv_lift
 
 
-def test_naive_bcast_rv_lift():
-    r"""Make sure `naive_bcast_rv_lift` can handle useless scalar `BroadcastTo`\s."""
-    X_rv = at.random.normal()
-    Z_at = BroadcastTo()(X_rv, ())
-
-    # Make sure we're testing what we intend to test
-    assert isinstance(Z_at.owner.op, BroadcastTo)
-
-    res = rewrite_graph(Z_at, custom_rewrite=in2out(naive_bcast_rv_lift), clone=False)
-    assert res is X_rv
-
-
-def test_naive_bcast_rv_lift_valued_var():
+def test_broadcast_conditional():
     r"""Check that `naive_bcast_rv_lift` won't touch valued variables"""
 
     x_rv = at.random.normal(name="x")
@@ -265,5 +249,5 @@ def test_unmeargeable_dimshuffles():
     w = z.dimshuffle((1, 0, 2))
 
     # TODO: Check that logp is correct if this type of graphs is ever supported
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(w)

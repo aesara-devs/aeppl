@@ -7,6 +7,7 @@ import numpy as np
 from aesara.raise_op import CheckAndRaise
 from aesara.tensor.slinalg import Cholesky, solve_triangular
 
+from aeppl.abstract import ValuedVariable
 from aeppl.dists import DiracDelta, DiscreteMarkovChainFactory
 
 if TYPE_CHECKING:
@@ -52,13 +53,14 @@ def xlogy0(m, x):
     return at.switch(at.eq(x, 0), at.switch(at.eq(m, 0), 0.0, -np.inf), m * at.log(x))
 
 
-def logprob(rv_var, *rv_values, **kwargs):
+def logprob(rv_val, *rv_values, **kwargs):
     """Create a graph for the log-probability of a measurable variable."""
-    logprob = _logprob(rv_var.owner.op, rv_values, *rv_var.owner.inputs, **kwargs)
 
-    for rv_var in rv_values:
-        if rv_var.name:
-            logprob.name = f"{rv_var.name}_logprob"
+    logprob = _logprob(rv_val.owner.op, rv_values, *rv_val.owner.inputs, **kwargs)
+
+    for rv_val in rv_values:
+        if rv_val.name:
+            logprob.name = f"{rv_val.name}_logprob"
 
     return logprob
 
@@ -114,6 +116,12 @@ def _icdf(
 ):
     """Create a graph for the inverse CDF of a measurable variable."""
     raise NotImplementedError(f"icdf not implemented for {op}")
+
+
+@_logprob.register(ValuedVariable)
+def valued_variable_logprob(op: ValuedVariable, values, *inputs, **kwargs):
+    measurable_input = inputs[0]
+    return logprob(measurable_input, *values, **kwargs)
 
 
 @_logprob.register(arb.UniformRV)

@@ -1,5 +1,8 @@
+import aesara
 import aesara.tensor as at
+import numpy as np
 import pytest
+from aesara.gradient import NullTypeGradError, grad
 from aesara.tensor.random.basic import NormalRV
 
 from aeppl.abstract import (
@@ -7,6 +10,7 @@ from aeppl.abstract import (
     _get_measurable_outputs,
     assign_custom_measurable_outputs,
     noop_measurable_outputs_fn,
+    valued_variable,
 )
 
 
@@ -92,3 +96,25 @@ def test_assign_custom_measurable_outputs():
 
     with pytest.raises(ValueError):
         assign_custom_measurable_outputs(unmeas_X_rv.owner, lambda x: x)
+
+
+def test_valued_variable():
+    rv_var = at.random.normal(0, 1, size=3)
+    obs_var = valued_variable(
+        rv_var, np.array([0.2, 0.1, -2.4], dtype=aesara.config.floatX)
+    )
+
+    assert obs_var.owner.inputs[0] is rv_var
+
+    with pytest.raises(TypeError):
+        valued_variable(rv_var, np.array([1, 2], dtype=int))
+
+    rv_vv = at.vector()
+    obs_var = valued_variable(rv_var, rv_vv)
+
+    rv_val = np.zeros(3)
+    res = obs_var.eval({rv_var: rv_val, rv_vv: np.ones(3)})
+    assert np.array_equal(res, rv_val)
+
+    with pytest.raises(NullTypeGradError):
+        grad(obs_var.sum(), [rv_vv])

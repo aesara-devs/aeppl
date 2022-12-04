@@ -50,7 +50,7 @@ add_function_parentheses = False
 
 # -- Options for extensions
 
-jupyter_execute_notebooks = "auto"
+nb_execution_mode = "auto"
 # execution_excludepatterns = ["*.ipynb"]
 myst_enable_extensions = ["colon_fence", "deflist", "dollarmath", "amsmath"]
 

@@ -3,11 +3,14 @@ from copy import copy
 from functools import singledispatch
 from typing import Callable, List
 
+import aesara.tensor as at
+from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.graph.utils import MetaType
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.random.op import RandomVariable
+from aesara.tensor.type import TensorType
 
 
 class MeasurableVariable(abc.ABC):
@@ -124,3 +127,55 @@ class MeasurableElemwise(Elemwise):
 
 
 MeasurableVariable.register(MeasurableElemwise)
+
+
+class ValuedVariable(Op):
+    r"""Represents the association of a measurable variable and its value.
+
+    A `ValuedVariable` node represents the pair :math:`(Y, y)`, where
+    :math:`Y` is a random variable and :math:`y \sim Y`.
+
+    Log-probability (densities) are functions over these pairs, which makes
+    these nodes in a graph an intermediate form that serves to construct a
+    log-probability from a model graph.
+
+    This intermediate form can be used as the target for rewrites that
+    otherwise wouldn't make sense to apply to--say--a random variable node
+    directly.  An example is `BroadcastTo` lifting through `RandomVariable`\s.
+    """
+
+    default_output = 0
+    view_map = {0: [0]}
+
+    def make_node(self, rv, value):
+
+        assert isinstance(rv.type, TensorType)
+        out_rv = rv.type()
+
+        vv = at.as_tensor_variable(value)
+        assert isinstance(vv.type, TensorType)
+
+        # TODO: We should probably check the `Type`s of `out_rv` and `vv`
+        if vv.type.dtype != rv.type.dtype:
+            raise TypeError(
+                f"Value type {vv.type} does not match random variable type {out_rv.type}"
+            )
+
+        return Apply(self, [rv, vv], [out_rv])
+
+    def perform(self, node, inputs, out):
+        out[0][0] = inputs[0]
+
+    def grad(self, inputs, outputs):
+        return [
+            grad_undefined(self, k, inp, "No gradient defined for `ValuedVariable`")
+            for k, inp in enumerate(inputs)
+        ]
+
+    def infer_shape(self, fgraph, node, input_shapes):
+        return [input_shapes[0]]
+
+
+MeasurableVariable.register(ValuedVariable)
+
+valued_variable = ValuedVariable()

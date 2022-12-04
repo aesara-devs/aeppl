@@ -7,7 +7,7 @@ import scipy.special
 from aesara.graph.fg import FunctionGraph
 from numdifftools import Derivative, Jacobian
 
-from aeppl.joint_logprob import conditional_logprob, joint_logprob
+from aeppl.joint_logprob import DensityNotFound, conditional_logprob, joint_logprob
 from aeppl.transforms import (
     DEFAULT_TRANSFORM,
     ChainedTransform,
@@ -417,10 +417,10 @@ def test_TransformValuesMapping():
     x = at.vector()
     fg = FunctionGraph(outputs=[x])
 
-    tvm = TransformValuesMapping({})
+    tvm = TransformValuesMapping({}, {})
     fg.attach_feature(tvm)
 
-    tvm2 = TransformValuesMapping({})
+    tvm2 = TransformValuesMapping({}, {})
     fg.attach_feature(tvm2)
 
     assert fg._features[-1] is tvm
@@ -594,9 +594,6 @@ def test_transform_measurable_add(rv_size, loc_type, right):
         sp.stats.norm(loc_test_val, 1).logpdf(z_test_val),
     )
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
-
 
 @pytest.mark.parametrize(
     "rv_size, scale_type",
@@ -630,9 +627,6 @@ def test_scale_transform_rv(rv_size, scale_type, right):
         sp.stats.norm(0, scale_test_val).logpdf(z_val),
     )
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
-
 
 def test_transformed_rv_and_value():
     y_rv = at.random.halfnormal(-1, 1, name="base_rv") + 1
@@ -657,7 +651,7 @@ def test_loc_transform_multiple_rvs_fails1():
     x_rv2 = at.random.normal(name="x_rv2")
     y_rv = x_rv1 + x_rv2
 
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(y_rv)
 
 
@@ -666,19 +660,19 @@ def test_nested_loc_transform_multiple_rvs_fails2():
     x_rv2 = at.cos(at.random.normal(name="x_rv2"))
     y_rv = x_rv1 + x_rv2
 
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(y_rv)
 
 
 def test_discrete_rv_unary_transform_fails():
     y_rv = at.exp(at.random.poisson(1))
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(y_rv)
 
 
 def test_discrete_rv_multinary_transform_fails():
     y_rv = 5 + at.random.poisson(1)
-    with pytest.raises(UserWarning, match="Found a random variable that is not"):
+    with pytest.raises(DensityNotFound):
         joint_logprob(y_rv)
 
 
@@ -709,9 +703,6 @@ def test_transform_measurable_true_div(a):
         sp.stats.invgamma(shape, scale=scale * a).logpdf(z_test_val),
     )
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
-
     Z_rv = X_rv / a
 
     logp, (z_vv,) = joint_logprob(Z_rv)
@@ -723,9 +714,6 @@ def test_transform_measurable_true_div(a):
         sp.stats.gamma(shape, scale=1 / (scale * a)).logpdf(z_test_val),
     )
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
-
 
 def test_transform_measurable_neg():
     X_rv = at.random.halfnormal(name="X")
@@ -735,9 +723,6 @@ def test_transform_measurable_neg():
     z_logp_fn = aesara.function([z_vv], logp)
 
     assert np.isclose(z_logp_fn(-1.5), sp.stats.halfnorm.logpdf(1.5))
-
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
 
 
 def test_transform_measurable_sub():
@@ -750,14 +735,28 @@ def test_transform_measurable_sub():
     z_logp_fn = aesara.function([z_vv], logp)
     assert np.isclose(z_logp_fn(7.3), sp.stats.norm.logpdf(5.0 - 7.3, 1.0))
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
-
     Z_rv = X_rv - 5.0
 
     logp, (z_vv,) = joint_logprob(Z_rv)
     z_logp_fn = aesara.function([z_vv], logp)
     assert np.isclose(z_logp_fn(7.3), sp.stats.norm.logpdf(7.3, loc=-4.0))
 
-    with pytest.raises(RuntimeError, match="The logprob terms"):
-        joint_logprob(Z_rv, X_rv)
+
+def test_transform_reused_measurable():
+
+    srng = at.random.RandomStream(0)
+
+    X_rv = srng.normal(0, 1, name="X")
+    Z_tr = at.exp(X_rv)
+
+    z_vv = at.dscalar(name="z_vv")
+
+    logprob, vvs = joint_logprob(realized={Z_tr: z_vv, X_rv: z_vv})
+
+    logp_fn = aesara.function([z_vv], logprob)
+
+    z_val = 0.1
+
+    exp_res = sp.stats.lognorm(s=1).logpdf(z_val) + sp.stats.norm().logpdf(z_val)
+
+    np.testing.assert_allclose(logp_fn(z_val), exp_res)
