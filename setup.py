@@ -28,12 +28,12 @@ if "BUILD_AEPPL_NIGHTLY" in os.environ:
 
 setup(
     name=NAME,
+    author="aesara-devs",
+    author_email="aesara.devs@gmail.com",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description="PPL tools for Aesara",
     url="https://github.com/aesara-devs/aeppl",
-    maintainer="Aesara Developers",
-    maintainer_email="aesara-devs@gmail.com",
     packages=["aeppl"],
     install_requires=[
         "numpy>=1.18.1",
