@@ -763,3 +763,22 @@ def test_transform_measurable_sub():
 
     with pytest.raises(RuntimeError, match="The logprob terms"):
         joint_logprob(Z_rv, X_rv)
+
+
+@pytest.mark.parametrize(
+    "pow_fn, exp_val_fn",
+    [
+        (lambda x: x**2, lambda z: sp.stats.chi2(df=1).logpdf(z))
+        # TODO: Add more cases.
+    ],
+)
+def test_transform_measurable_pow(pow_fn, exp_val_fn):
+    X_rv = at.random.normal(0, 1, name="X")
+    Z_rv = pow_fn(X_rv)
+    Z_rv.name = "Z"
+
+    z_logp, (z_vv,) = conditional_logprob(Z_rv)
+    z_logp_fn = aesara.function([z_vv], z_logp[Z_rv])
+
+    z_val = 0.5
+    assert np.allclose(z_logp_fn(z_val), exp_val_fn(z_val))
