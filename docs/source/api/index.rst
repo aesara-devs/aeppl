@@ -10,3 +10,4 @@ API
    logdensity
    transforms
    mixtures
+   scan
