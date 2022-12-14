@@ -6,4 +6,5 @@ API
 .. toctree::
    :maxdepth: 1
 
+   distributions
    logdensity
