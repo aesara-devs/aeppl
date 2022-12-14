@@ -8,3 +8,5 @@ API
 
    distributions
    logdensity
+   transforms
+   mixtures
