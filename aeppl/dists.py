@@ -209,8 +209,34 @@ def discrete_markov_chain(
 ):
     """Construct a first-order discrete Markov chain distribution.
 
-    This characterizes vector random variables consisting of state indicator
-    values (i.e. ``0`` to ``M - 1``) that are driven by a discrete Markov chain.
+    This defines a random vector that consists of state indicator values (i.e.
+    ``0`` to ``M - 1`` where ``M`` is the dimensionality of the state space)
+    that are driven by a discrete Markov chain.
+
+    Given an array of transition probability matrices ``Gamma`` and initial
+    state probabilities ``gamma0``, `discrete_markov_chain` represents the
+    probability distribution of ``states`` defined by:
+
+    .. code::
+
+        states[0] = categorical(gamma_0)
+        for t in range(1, N):
+            states[t] = categorical(Gammas[t, state[t-1]])
+
+    Example
+    -------
+
+    .. code::
+
+        import aesara.tensor as at
+        import numpy as np
+
+        num_steps = 10
+        Gammas_base = np.array([[.5, .5], [.5, .5]])
+        Gammas = np.broadcast(Gammas_base, (num_steps, 2, 2))
+        gamma0 = np.r_[0.5, 0.5]
+
+        dmc, updates = discrete_markov_chain(test_Gamma, test_gamma_0)
 
 
     Parameters
