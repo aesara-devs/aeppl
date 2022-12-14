@@ -82,7 +82,9 @@ def clip_logprob(op, values, base_rv, lower_bound, upper_bound, **kwargs):
     r"""Logprob of a clipped censored distribution
 
     The probability is given by
+
     .. math::
+
         \begin{cases}
             0 & \text{for } x < lower, \\
             \text{CDF}(lower, dist) & \text{for } x = lower, \\
@@ -217,21 +219,27 @@ def round_logprob(op, values, base_rv, **kwargs):
     r"""Logprob of a rounded censored distribution
 
     The probability of a distribution rounded to the nearest integer is given by
+
     .. math::
+
         \begin{cases}
             \text{CDF}(x+\frac{1}{2}, dist) - \text{CDF}(x-\frac{1}{2}, dist) & \text{for } x \in \mathbb{Z}, \\
             0 & \text{otherwise},
         \end{cases}
 
     The probability of a distribution rounded up is given by
+
     .. math::
+
         \begin{cases}
             \text{CDF}(x, dist) - \text{CDF}(x-1, dist) & \text{for } x \in \mathbb{Z}, \\
             0 & \text{otherwise},
         \end{cases}
 
     The probability of a distribution rounded down is given by
+
     .. math::
+
         \begin{cases}
             \text{CDF}(x+1, dist) - \text{CDF}(x, dist) & \text{for } x \in \mathbb{Z}, \\
             0 & \text{otherwise},
