@@ -1,3 +1,7 @@
+.. image:: logo.png
+   :align: center
+
+
 AePPL is a flexible collection of tools that allows users to define and manipulate probabilistic models implemented in `Aesara <https://github.com/aesara-devs/aesara>`__.
 
 Features
