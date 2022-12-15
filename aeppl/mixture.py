@@ -411,7 +411,7 @@ def logprob_MixtureRV(
             logp_val += ifelse(
                 at.eq(indices[0], i),
                 comp_logp,
-                at.zeros_like(value),
+                at.zeros_like(value, dtype=comp_logp.type.dtype),
             )
 
     return logp_val

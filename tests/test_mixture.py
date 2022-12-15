@@ -8,6 +8,7 @@ from aesara.tensor.random.basic import CategoricalRV
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import as_index_constant
 
+from aeppl.dists import dirac_delta
 from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.mixture import MixtureRV, expand_indices
 from aeppl.rewriting import construct_ir_fgraph
@@ -665,8 +666,6 @@ def test_expand_indices_newaxis(A_parts, indices):
 
 
 def test_mixture_with_DiracDelta():
-    from aeppl.dists import dirac_delta
-
     srng = at.random.RandomStream(29833)
 
     X_rv = srng.normal(0, 1, name="X")
@@ -727,3 +726,23 @@ def test_switch_mixture():
 
     np.testing.assert_almost_equal(0.69049938, z1_logp.eval({z_vv: -10, i_vv: 0}))
     np.testing.assert_almost_equal(0.69049938, z2_logp.eval({z_vv: -10, i_vv: 0}))
+
+
+def test_dirac_delta_mixture_dtype():
+    srng = at.random.RandomStream(0)
+
+    p = at.scalar("p")
+    I_rv = srng.bernoulli(p)
+
+    X_rv = dirac_delta(at.as_tensor(0))
+    assert X_rv.type.dtype.startswith("int")
+
+    Y_rv = srng.poisson(1.0)
+
+    Z_rv = at.stack([X_rv, Y_rv])[I_rv]
+    logprob, (
+        i_vv,
+        z_vv,
+    ) = joint_logprob(I_rv, Z_rv)
+
+    assert logprob.type.dtype.startswith("float")
