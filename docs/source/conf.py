@@ -60,6 +60,7 @@ always_document_param_types = True
 # -- Options for HTML output
 
 html_theme = "furo"
+html_logo = "logo.png"
 
 intersphinx_mapping = {
     "aesara": ("https://aesara.readthedocs.io/en/latest", None),
