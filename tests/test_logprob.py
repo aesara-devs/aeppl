@@ -79,7 +79,9 @@ def scipy_logprob_tester(
     if check_broadcastable:
         numpy_shape = np.shape(numpy_res)
         numpy_bcast = [s == 1 for s in numpy_shape]
-        np.testing.assert_array_equal(aesara_res.type.broadcastable, numpy_bcast)
+        np.testing.assert_array_equal(
+            [s == 1 for s in aesara_res.type.shape], numpy_bcast
+        )
 
     np.testing.assert_array_equal(aesara_res_val.shape, numpy_res.shape)
 
