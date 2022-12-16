@@ -1,7 +1,7 @@
 |Tests Status| |Coverage| |Gitter|
 
 
-``aeppl`` provides tools for a[e]PPL written in `Aesara <https://github.com/pymc-devs/aesara>`_.
+``aeppl`` provides tools for a[e]PPL written in `Aesara <https://github.com/aesara-devs/aesara>`_.
 
 
 Features
