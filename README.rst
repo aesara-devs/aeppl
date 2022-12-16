@@ -28,10 +28,11 @@ containing Aesara ``RandomVariable``\s:
 
   from aeppl import joint_logprob, pprint
 
+  srng = at.random.RandomStream()
 
   # A simple scale mixture model
-  S_rv = at.random.invgamma(0.5, 0.5)
-  Y_rv = at.random.normal(0.0, at.sqrt(S_rv))
+  S_rv = srng.invgamma(0.5, 0.5)
+  Y_rv = srng.normal(0.0, at.sqrt(S_rv))
 
   # Compute the joint log-probability
   logprob, (y, s) = joint_logprob(Y_rv, S_rv)
@@ -94,8 +95,8 @@ Joint log-probabilities can be computed for some terms that are *derived* from
 .. code-block:: python
 
   # Create a switching model from a Bernoulli distributed index
-  Z_rv = at.random.normal([-100, 100], 1.0, name="Z")
-  I_rv = at.random.bernoulli(0.5, name="I")
+  Z_rv = srng.normal([-100, 100], 1.0, name="Z")
+  I_rv = srng.bernoulli(0.5, name="I")
 
   M_rv = Z_rv[I_rv]
   M_rv.name = "M"
