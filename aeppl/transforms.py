@@ -10,7 +10,7 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
-from aesara.tensor.math import add, exp, log, mul, reciprocal, sub, true_div
+from aesara.tensor.math import add, exp, log, mul, pow, reciprocal, sub, true_div
 from aesara.tensor.rewriting.basic import (
     register_specialize,
     register_stabilize,
@@ -422,8 +422,20 @@ def measurable_mul(fgraph, node):
 def measurable_reciprocal(fgraph, node):
     """Rewrite a `reciprocal` node to a `MeasurableVariable`."""
 
-    def transform(measurable_input, *other_inputs):
-        return ReciprocalTransform(), (measurable_input,)
+    new_node = at.power(node.inputs[0], at.as_tensor(-1)).owner
+    return measurable_pow.transform(fgraph, new_node)
+
+
+@register_measurable_ir
+@node_rewriter([pow])
+def measurable_pow(fgraph, node):
+    """Rewrite a `pow` node to a `MeasurableVariable`."""
+
+    def transform(measurable_input, *args):
+        return PowerTransform(transform_args_fn=lambda *inputs: inputs[-1]), (
+            measurable_input,
+            *args,
+        )
 
     return construct_elemwise_transform(fgraph, node, transform)
 
@@ -579,17 +591,31 @@ class ExpTransform(RVTransform):
         return -at.log(value)
 
 
-class ReciprocalTransform(RVTransform):
-    name = "reciprocal"
+class PowerTransform(RVTransform):
+    name = "power"
+
+    def __init__(self, transform_args_fn):
+        self.transform_args_fn = transform_args_fn
 
     def forward(self, value, *inputs):
-        return at.reciprocal(value)
+        power = self.transform_args_fn(*inputs)
+        return at.power(value, power)
 
     def backward(self, value, *inputs):
-        return at.reciprocal(value)
+        power = self.transform_args_fn(*inputs)
+
+        inv_power = at.reciprocal(power)
+        return at.switch(
+            at.eq(at.mod(power, 2), 0),
+            at.power(value, inv_power),
+            at.sgn(value) * at.power(at.abs(value), inv_power),
+        )
 
     def log_jac_det(self, value, *inputs):
-        return -2 * at.log(value)
+        from aeppl.logprob import xlogy0
+
+        power = self.transform_args_fn(*inputs)
+        return at.log(at.abs(power)) + xlogy0((power - 1), at.abs(value))
 
 
 class IntervalTransform(RVTransform):
