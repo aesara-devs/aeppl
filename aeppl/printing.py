@@ -417,7 +417,8 @@ class PreamblePPrinter(PPrinter):
     -------
     >>> import aesara.tensor as at
     >>> from aeppl.printing import pprint
-    >>> X_rv = at.random.normal(at.scalar('\\mu'), at.scalar('\\sigma'), name='X')
+    >>> srng = at.random.RandomStream()
+    >>> X_rv = srng.normal(at.scalar('\\mu'), at.scalar('\\sigma'), name='X')
     >>> print(pprint(X_rv))
     \\mu in R
     \\sigma in R
