@@ -569,7 +569,7 @@ def categorical_logprob(op, values, *inputs, **kwargs):
             )
         )
         # FIXME: `take_along_axis` drops a broadcastable dimension
-        # when `value.broadcastable == p.broadcastable == (True, True, False)`.
+        # when `value.type.shape == p.type.shape == (1, 1, None)`.
     else:
         res = at.log(p[value])
 

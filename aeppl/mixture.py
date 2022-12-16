@@ -180,17 +180,17 @@ def rv_pull_down(x: TensorVariable, dont_touch_vars=None) -> TensorVariable:
 class MixtureRV(Op):
     """A placeholder used to specify a log-likelihood for a mixture sub-graph."""
 
-    __props__ = ("indices_end_idx", "out_dtype", "out_broadcastable")
+    __props__ = ("indices_end_idx", "out_dtype", "out_shape")
 
-    def __init__(self, indices_end_idx, out_dtype, out_broadcastable):
+    def __init__(self, indices_end_idx, out_dtype, out_shape):
         super().__init__()
         self.indices_end_idx = indices_end_idx
         self.out_dtype = out_dtype
-        self.out_broadcastable = out_broadcastable
+        self.out_shape = out_shape
 
     def make_node(self, *inputs):
         return Apply(
-            self, list(inputs), [TensorType(self.out_dtype, self.out_broadcastable)()]
+            self, list(inputs), [TensorType(self.out_dtype, shape=self.out_shape)()]
         )
 
     def perform(self, node, inputs, outputs):
@@ -284,8 +284,8 @@ def mixture_replace(fgraph, node):
     # Replace this sub-graph with a `MixtureRV`
     mix_op = MixtureRV(
         1 + len(mixing_indices),
-        old_mixture_rv.dtype,
-        old_mixture_rv.broadcastable,
+        old_mixture_rv.type.dtype,
+        old_mixture_rv.type.shape,
     )
     new_node = mix_op.make_node(*([join_axis] + mixing_indices + mixture_rvs))
 
@@ -334,8 +334,8 @@ def switch_mixture_replace(fgraph, node):
 
     mix_op = MixtureRV(
         2,
-        old_mixture_rv.dtype,
-        old_mixture_rv.broadcastable,
+        old_mixture_rv.type.dtype,
+        old_mixture_rv.type.shape,
     )
     new_node = mix_op.make_node(
         *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
