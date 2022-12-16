@@ -31,7 +31,8 @@ def conditional_logprob(
 
         import aesara.tensor as at
 
-        srng = at.random.RandomStream(0)
+        srng = at.random.RandomStream()
+
         sigma2_rv = srng.invgamma(0.5, 0.5)
         Y_rv = srng.normal(0, at.sqrt(sigma2_rv))
 
@@ -267,7 +268,7 @@ def joint_logprob(
 
         import aesara.tensor as at
 
-        srng = at.random.RandomStream(0)
+        srng = at.random.RandomStream()
         sigma2_rv = srng.invgamma(0.5, 0.5)
         Y_rv = srng.normal(0, at.sqrt(sigma2_rv))
 

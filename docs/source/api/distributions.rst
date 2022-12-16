@@ -11,7 +11,7 @@ The :py:func:`aeppl.logprob.logprob` function can be called on any random variab
    import aesara.tensor as at
    from aeppl.logprob import _logprob
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar("mu")
    sigma = at.scalar("sigma")
@@ -29,7 +29,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    p = at.scalar("p")
    x_rv = snrg.bernoulli(p)
@@ -43,7 +43,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    a = at.scalar("a")
    b = at.scalar("b")
@@ -59,7 +59,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    n = at.iscalar("n")
    a = at.scalar("a")
@@ -76,7 +76,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    n = at.iscalar("n")
    p = at.scalar("p")
@@ -92,7 +92,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    loc = at.scalar("loc")
    scale = at.scalar("scale")
@@ -107,7 +107,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    p = at.vector("p")
    x_rv = snrg.categorical(p)
@@ -121,7 +121,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    df = at.scalar("df")
    x_rv = snrg.chisquare(df)
@@ -148,7 +148,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    alpha = at.vector("alpha")
    x_rv = snrg.dirichlet(alpha)
@@ -167,7 +167,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    beta = at.scalar("beta")
    x_rv = snrg.exponential(beta)
@@ -181,7 +181,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    alpha = at.scalar('alpha')
    beta = at.scalar('beta')
@@ -196,7 +196,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    p = at.scalar("p")
    x_rv = snrg.geometric(p)
@@ -210,7 +210,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar('mu')
    beta = at.scalar('beta')
@@ -225,7 +225,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    x0 = at.scalar('x0')
    gamma = at.scalar('gamma')
@@ -240,7 +240,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar('mu')
    sigma = at.scalar('sigma')
@@ -255,7 +255,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    ngood = at.scalar("ngood")
    nbad = at.scalar("nbad")
@@ -271,7 +271,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    alpha = at.scalar('alpha')
    beta = at.scalar('beta')
@@ -286,7 +286,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar("mu")
    lmbda = at.scalar("lambda")
@@ -301,7 +301,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar("mu")
    s = at.scalar("s")
@@ -316,7 +316,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar("mu")
    sigma = at.scalar("sigma")
@@ -331,7 +331,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    n = at.iscalar("n")
    p = at.vector("p")
@@ -346,7 +346,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.vector('mu')
    Sigma = at.matrix('sigma')
@@ -362,7 +362,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    n = at.iscalar("n")
    p = at.scalar("p")
@@ -377,7 +377,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar('mu')
    sigma = at.scalar('sigma')
@@ -392,7 +392,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    b = at.scalar("b")
    scale = at.scalar("scale")
@@ -407,7 +407,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    lmbda = at.scalar("lambda")
    x_rv = snrg.poisson(lmbda)
@@ -421,7 +421,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    df = at.scalar('df')
    loc = at.scalar('loc')
@@ -437,7 +437,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    left = at.scalar('left')
    mode = at.scalar('mode')
@@ -453,7 +453,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    low = at.scalar('low')
    high = at.scalar('high')
@@ -468,7 +468,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar('mu')
    kappa = at.scalar('kappa')
@@ -483,7 +483,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    mu = at.scalar('mu')
    lmbda = at.scalar('lambda')
@@ -499,7 +499,7 @@ Documentation for the Aesara implementation can be found here: :external:py:clas
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    k = at.scalar('k')
    x_rv = srng.weibull(k)

@@ -10,7 +10,7 @@ By creating an array of random variables and indexing it with a random variable:
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    w_rv = srng.normal(-2, 1)
    x_rv = srng.normal(0, 1)
@@ -27,7 +27,7 @@ Using `aesara.tensor.switch`:
 
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    x_rv = srng.normal(0, 1)
    y_rv = srng.normal(2, 1)
