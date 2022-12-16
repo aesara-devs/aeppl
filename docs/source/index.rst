@@ -24,7 +24,7 @@ Example
    import aesara
    import aesara.tensor as at
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    S_rv = srng.invgamma(0.5, 0.5)
    Y_rv = srng.normal(0.0, at.sqrt(S_rv))

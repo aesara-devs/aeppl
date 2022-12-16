@@ -16,7 +16,7 @@ You can define mixture models very naturally by specifying their generative proc
     import aesara.tensor as at
     import numpy as np
 
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
 
     loc = np.array([-2, 0, 3.2, 2.5])
     scale = np.array([1.2, 1, 5, 2.8])
@@ -44,7 +44,7 @@ Stochastic volatility model
     import aesara
     import aesara.tensor as at
 
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
     sigma_rv = srng.exponential(1)
     nu_rv = srng.exponential(1)
 
@@ -87,7 +87,7 @@ This example shows how to deal with improper priors and specify observed variabl
     b = at.scalar("b")
     hyperprior = at.pow(a + b, -2.5)
 
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
     theta_rv = srng.beta(a, b, size=(n_trials,))
     Y_rv = srng.binom(theta, n_rats)
 
@@ -107,7 +107,7 @@ Sparse Regression
     import numpy as np
 
 
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
 
     X = at.matrix("X")
 
@@ -194,7 +194,7 @@ The `PERT distribution <https://en.wikipedia.org/wiki/PERT_distribution>`_, for 
     import aesara
     import aesara.tensor as at
 
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
 
     def pert(srng, a, b, c):
         r"""Construct a random variable that is PERT-distributed."""

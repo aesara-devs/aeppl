@@ -10,7 +10,7 @@ AePPL can compute the log-density of measures defined as the output of an `aesar
    import aesara.tensor as at
    import numpy as np
 
-   srng = at.random.RandomStream(0)
+   srng = at.random.RandomStream()
 
    p = np.array([0.9, 0.1])
    S_0_rv = srng.categorical(p)

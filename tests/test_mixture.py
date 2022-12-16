@@ -729,7 +729,7 @@ def test_switch_mixture():
 
 
 def test_dirac_delta_mixture_dtype():
-    srng = at.random.RandomStream(0)
+    srng = at.random.RandomStream()
 
     p = at.scalar("p")
     I_rv = srng.bernoulli(p)
