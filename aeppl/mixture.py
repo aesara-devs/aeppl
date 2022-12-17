@@ -10,7 +10,7 @@ from aesara.graph.rewriting.basic import (
     node_rewriter,
     pre_greedy_node_rewriter,
 )
-from aesara.ifelse import ifelse
+from aesara.ifelse import IfElse, ifelse
 from aesara.scalar.basic import Switch
 from aesara.tensor.basic import Join, MakeVector
 from aesara.tensor.elemwise import Elemwise
@@ -312,6 +312,31 @@ def switch_mixture_replace(fgraph, node):
     if rv_map_feature is None:
         return None  # pragma: no cover
 
+    old_mixture_rv = node.default_output()
+
+    # Add an extra dimension to the indices so that the `MixtureRV` we
+    # construct represents a valid
+    # `at.stack(node.inputs[1:])[f(node.inputs[0])]`, for some function `f`,
+    # that's equivalent to `at.switch(*node.inputs)`.
+    out_shape = at.broadcast_shape(
+        *(tuple(v.shape) for v in node.inputs[1:]), arrays_are_shapes=True
+    )
+    switch_indices = (node.inputs[0],) + tuple(at.arange(s) for s in out_shape)
+
+    # Construct the proxy/intermediate mixture representation
+    switch_stack = at.stack(node.inputs[::-1])[switch_indices]
+    switch_stack.name = old_mixture_rv.name
+
+    return mixture_replace.transform(fgraph, switch_stack.owner)
+
+
+@node_rewriter((IfElse,))
+def ifelse_mixture_replace(fgraph, node):
+    rv_map_feature = getattr(fgraph, "preserve_rv_mappings", None)
+
+    if rv_map_feature is None:
+        return None  # pragma: no cover
+
     if not isinstance(node.op.scalar_op, Switch):
         return None  # pragma: no cover
 
@@ -332,14 +357,25 @@ def switch_mixture_replace(fgraph, node):
         new_comp_rv = new_node.outputs[out_idx]
         mixture_rvs.append(new_comp_rv)
 
+    """
+    Unlike mixtures generated via at.stack, there is only one condition, i.e. index
+    for switch/ifelse-defined mixture sub-graphs. However, this condition can be
+    non-scalar for Switch Ops.
+    """
     mix_op = MixtureRV(
         2,
         old_mixture_rv.type.dtype,
         old_mixture_rv.type.shape,
     )
-    new_node = mix_op.make_node(
-        *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
-    )
+
+    if node.inputs[0].ndim == 0:
+        # as_nontensor_scalar to allow graphs to be identical to mixture sub-graphs
+        # created using at.stack and Subtensor indexing
+        new_node = mix_op.make_node(
+            *([NoneConst, as_nontensor_scalar(node.inputs[0])] + mixture_rvs)
+        )
+    else:
+        new_node = mix_op.make_node(*([at.constant(0), node.inputs[0]] + mixture_rvs))
 
     new_mixture_rv = new_node.default_output()
 
@@ -420,7 +456,7 @@ def logprob_MixtureRV(
 logprob_rewrites_db.register(
     "mixture_replace",
     EquilibriumGraphRewriter(
-        [mixture_replace, switch_mixture_replace],
+        [mixture_replace, switch_mixture_replace, ifelse_mixture_replace],
         max_use_ratio=aesara.config.optdb__max_use_ratio,
     ),
     "basic",

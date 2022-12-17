@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats.distributions as sp
 from aesara.graph.basic import Variable, equal_computations
+from aesara.ifelse import ifelse
 from aesara.tensor.random.basic import CategoricalRV
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.subtensor import as_index_constant
@@ -229,25 +230,6 @@ def test_hetero_mixture_binomial(p_val, size):
             np.array([[0.1, 0.5, 0.4], [0.4, 0.1, 0.5]], dtype=aesara.config.floatX),
             None,
             None,
-            (),
-            0,
-        ),
-        (
-            (
-                np.array(0, dtype=aesara.config.floatX),
-                np.array(1, dtype=aesara.config.floatX),
-            ),
-            (
-                np.array(0.5, dtype=aesara.config.floatX),
-                np.array(0.5, dtype=aesara.config.floatX),
-            ),
-            (
-                np.array(100, dtype=aesara.config.floatX),
-                np.array(1, dtype=aesara.config.floatX),
-            ),
-            np.array([0.1, 0.5, 0.4], dtype=aesara.config.floatX),
-            (),
-            (),
             (),
             0,
         ),
@@ -682,17 +664,122 @@ def test_mixture_with_DiracDelta():
     assert M_rv in logp_res
 
 
-def test_switch_mixture():
+@pytest.mark.parametrize(
+    "op, X_args, Y_args, p_val, comp_size, idx_size",
+    [
+        [op] + list(test_args)
+        for op in [at.switch, ifelse]
+        for test_args in [
+            (
+                (
+                    np.array(-10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array(10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array(0.5, dtype=aesara.config.floatX),
+                (),
+                (),
+            ),
+            (
+                (
+                    np.array(-10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array(10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array(0.5, dtype=aesara.config.floatX),
+                (),
+                (6,),
+            ),
+            (
+                (
+                    np.array([10, 20], dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array([-10, -20], dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array([0.9, 0.1], dtype=aesara.config.floatX),
+                (2,),
+                (2,),
+            ),
+            (
+                (
+                    np.array([10, 20], dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array([-10, -20], dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array([0.9, 0.1], dtype=aesara.config.floatX),
+                None,
+                None,
+            ),
+            (
+                (
+                    np.array(-10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array(10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array(0.5, dtype=aesara.config.floatX),
+                (2, 3),
+                (2, 3),
+            ),
+            (
+                (
+                    np.array(10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array(-10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array(0.5, dtype=aesara.config.floatX),
+                (2, 3),
+                (),
+            ),
+            (
+                (
+                    np.array(10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                (
+                    np.array(-10, dtype=aesara.config.floatX),
+                    np.array(0.1, dtype=aesara.config.floatX),
+                ),
+                np.array(0.5, dtype=aesara.config.floatX),
+                (3,),
+                (3,),
+            ),
+        ]
+        if not ((test_args[-1] is None or len(test_args[-1]) > 0) and op == ifelse)
+    ],
+)
+def test_switch_ifelse_mixture(op, X_args, Y_args, p_val, comp_size, idx_size):
+    """
+    The argument size is both the input to srng.normal and the expected
+    size of the mixture RV Z1_rv
+    """
     srng = at.random.RandomStream(29833)
 
-    X_rv = srng.normal(-10.0, 0.1, name="X")
-    Y_rv = srng.normal(10.0, 0.1, name="Y")
+    X_rv = srng.normal(*X_args, size=comp_size, name="X")
+    Y_rv = srng.normal(*Y_args, size=comp_size, name="Y")
 
-    I_rv = srng.bernoulli(0.5, name="I")
+    I_rv = srng.bernoulli(p_val, size=idx_size, name="I")
     i_vv = I_rv.clone()
     i_vv.name = "i"
 
-    Z1_rv = at.switch(I_rv, X_rv, Y_rv)
+    Z1_rv = op(I_rv, X_rv, Y_rv)
     z_vv = Z1_rv.clone()
     z_vv.name = "z1"
 
