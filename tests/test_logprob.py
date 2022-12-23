@@ -832,11 +832,11 @@ def test_geometric_logcdf(dist_params, obs, size, error):
 @pytest.mark.parametrize(
     "dist_params, obs, size",
     [
-        ((0.1,), np.array([-0.5, 0, 0.1, 0.5, 0.9, 1.0, 1.5], dtype=np.int64), ()),
-        ((0.5,), np.array([-0.5, 0, 0.1, 0.5, 0.9, 1.0, 1.5], dtype=np.int64), (3, 2)),
+        ((0.1,), np.array([0, 0.1, 0.5, 0.9], dtype=np.float64), ()),
+        ((0.5,), np.array([0, 0.1, 0.5, 0.9], dtype=np.float64), (3, 2)),
         (
-            (np.array([0.0, 0.2, 0.5, 1.0]),),
-            np.array([0.7, 0.7, 0.7, 0.7], dtype=np.int64),
+            (np.array([0.001, 0.02, 0.5, 0.9]),),
+            np.array([0.7, 0.7, 0.7, 0.7], dtype=np.float64),
             (),
         ),
     ],
@@ -850,7 +850,7 @@ def test_geometric_icdf(dist_params, obs, size):
 
     def scipy_geom_icdf(value, p):
         # Scipy ppf returns floats
-        return stats.geom.ppf(value, p).astype(value.dtype)
+        return stats.geom.ppf(value, p).astype(np.int64)
 
     scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_geom_icdf, test="icdf")
 
