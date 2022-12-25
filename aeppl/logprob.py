@@ -1,15 +1,17 @@
 from functools import singledispatch
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import aesara.tensor as at
 import aesara.tensor.random.basic as arb
 import numpy as np
-from aesara.graph.op import Op
 from aesara.raise_op import CheckAndRaise
 from aesara.tensor.slinalg import Cholesky, solve_triangular
-from aesara.tensor.var import TensorVariable
 
 from aeppl.dists import DiracDelta, DiscreteMarkovChainFactory
+
+if TYPE_CHECKING:
+    from aesara.graph.op import Op
+    from aesara.tensor.var import TensorVariable
 
 
 class ParameterValueError(ValueError):
@@ -51,7 +53,7 @@ def xlogy0(m, x):
 
 
 def logprob(rv_var, *rv_values, **kwargs):
-    """Create a graph for the log-probability of a ``RandomVariable``."""
+    """Create a graph for the log-probability of a measurable variable."""
     logprob = _logprob(rv_var.owner.op, rv_values, *rv_var.owner.inputs, **kwargs)
 
     for rv_var in rv_values:
@@ -62,7 +64,7 @@ def logprob(rv_var, *rv_values, **kwargs):
 
 
 def logcdf(rv_var, rv_value, **kwargs):
-    """Create a graph for the logcdf of a ``RandomVariable``."""
+    """Create a graph for the log-CDF of a measurable variable."""
     logcdf = _logcdf(
         rv_var.owner.op, rv_value, *rv_var.owner.inputs, name=rv_var.name, **kwargs
     )
@@ -74,7 +76,7 @@ def logcdf(rv_var, rv_value, **kwargs):
 
 
 def icdf(rv, value, **kwargs):
-    """Create a graph for the inverse CDF of a `RandomVariable`."""
+    """Create a graph for the inverse CDF of a measurable variable."""
     rv_icdf = _icdf(rv.owner.op, value, *rv.owner.inputs, **kwargs)
     if rv.name:
         rv_icdf.name = f"{rv.name}_icdf"
@@ -83,49 +85,34 @@ def icdf(rv, value, **kwargs):
 
 @singledispatch
 def _logprob(
-    op: Op,
-    values: Sequence[TensorVariable],
-    *inputs: TensorVariable,
+    op: "Op",
+    values: Sequence["TensorVariable"],
+    *inputs: "TensorVariable",
     **kwargs,
 ):
-    """Create a graph for the log-density/mass of a ``RandomVariable``.
-
-    This function dispatches on the type of ``op``, which should be a subclass
-    of ``RandomVariable``.  If you want to implement new density/mass graphs
-    for a ``RandomVariable``, register a new function on this dispatcher.
-
-    """
+    """Create a graph for the log-density/mass of a measurable variable."""
     raise NotImplementedError(f"Logprob method not implemented for {op}")
 
 
 @singledispatch
 def _logcdf(
-    op: Op,
-    value: TensorVariable,
-    *inputs: TensorVariable,
+    op: "Op",
+    value: "TensorVariable",
+    *inputs: "TensorVariable",
     **kwargs,
 ):
-    """Create a graph for the logcdf of a ``RandomVariable``.
-
-    This function dispatches on the type of ``op``, which should be a subclass
-    of ``RandomVariable``.  If you want to implement new logcdf graphs
-    for a ``RandomVariable``, register a new function on this dispatcher.
-    """
+    """Create a graph for the log-CDF of a measurable variable."""
     raise NotImplementedError(f"Logcdf method not implemented for {op}")
 
 
 @singledispatch
 def _icdf(
-    op: Op,
-    value: TensorVariable,
-    *inputs: TensorVariable,
+    op: "Op",
+    value: "TensorVariable",
+    *inputs: "TensorVariable",
     **kwargs,
 ):
-    """Create a graph for the inverse CDF of a `RandomVariable`.
-
-    This function dispatches on the type of `op`, which should be a subclass
-    of `RandomVariable`.
-    """
+    """Create a graph for the inverse CDF of a measurable variable."""
     raise NotImplementedError(f"icdf not implemented for {op}")
 
 
