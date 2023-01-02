@@ -676,15 +676,15 @@ def test_discrete_rv_multinary_transform_fails():
         joint_logprob(y_rv)
 
 
-@pytest.mark.xfail(reason="Check not implemented yet, see #51")
 def test_invalid_broadcasted_transform_rv_fails():
     loc = at.vector("loc")
     y_rv = loc + at.random.normal(0, 1, size=2, name="base_rv")
     y_rv.name = "y"
 
     logp, (y_vv,) = joint_logprob(y_rv)
-    logp.eval({y_vv: [0, 0, 0, 0], loc: [0, 0, 0, 0]})
-    assert False, "Should have failed before"
+
+    with pytest.raises(TypeError):
+        logp.eval({y_vv: [0, 0, 0, 0], loc: [0, 0, 0, 0]})
 
 
 @pytest.mark.parametrize("a", (1.0, 2.0))
