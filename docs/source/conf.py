@@ -6,7 +6,7 @@ import aeppl
 
 project = "aeppl"
 author = "Aesara Developers"
-copyright = f"2022, {author}"
+copyright = f"2021-2023, {author}"
 
 version = aeppl.__version__
 if os.environ.get("READTHEDOCS", False):
