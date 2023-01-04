@@ -5,7 +5,7 @@ import pytest
 import scipy as sp
 import scipy.special
 from aesara.graph.fg import FunctionGraph
-from numdifftools import Jacobian
+from numdifftools import Derivative, Jacobian
 
 from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.transforms import (
@@ -244,9 +244,7 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
 
             exp_log_jac_val = jacobian_estimate(a_trans_value)
         else:
-            jacobian_val = np.atleast_2d(
-                sp.misc.derivative(a_backward_fn, a_trans_value, dx=1e-6)
-            )
+            jacobian_val = np.atleast_2d(Derivative(a_backward_fn)(a_trans_value))
             exp_log_jac_val = np.linalg.slogdet(jacobian_val)[-1]
 
         log_jac_val = log_jac_fn(a_trans_value)
