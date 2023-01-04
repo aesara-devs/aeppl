@@ -53,7 +53,7 @@ jobs:
     if: ${{ needs.changes.outputs.changes == 'true' }}
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
     - uses: pre-commit/action@v2.0.0
 
   test:
@@ -148,7 +148,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: 3.7
 
