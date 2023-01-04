@@ -22,7 +22,7 @@ jobs:
         run: python -m build --sdist .
         env:
           BUILD_AEPPL_NIGHTLY: true
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.nightly_pypi_secret }}
