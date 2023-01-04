@@ -23,7 +23,7 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.src }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - uses: dorny/paths-filter@v2
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.changes.outputs.changes == 'true' }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/setup-python@v2
     - uses: pre-commit/action@v2.0.0
 
@@ -74,7 +74,7 @@ jobs:
           - "tests --ignore=tests/test_logprob.py"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
@@ -145,7 +145,7 @@ jobs:
     needs: [changes, all-checks]
     if: ${{ needs.changes.outputs.changes == 'true' && needs.all-checks.result == 'success' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v1
