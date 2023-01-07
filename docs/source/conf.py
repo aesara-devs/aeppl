@@ -1,5 +1,10 @@
 import os
 
+import sphinx.addnodes
+import sphinx.directives
+from docutils import nodes
+from sphinx.util.docutils import SphinxDirective
+
 import aeppl
 
 # -- Project information
@@ -69,3 +74,42 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
 }
+
+
+class SupportedDistributionsDirective(SphinxDirective):
+    def run(self):
+        from aesara.tensor.random.op import RandomVariable
+
+        from aeppl.logprob import _logprob
+
+        supported_dists = tuple(
+            mtype.__name__
+            for mtype in _logprob.registry.keys()
+            if issubclass(mtype, RandomVariable)
+            and not mtype.__module__.startswith(r"aeppl.")
+        )
+
+        res = nodes.bullet_list()
+        for dist_name in supported_dists:
+            attributes = {}
+            reftarget = f"aesara.tensor.random.basic.{dist_name}"
+            attributes["reftarget"] = reftarget
+            attributes["reftype"] = "class"
+            attributes["refdomain"] = "py"
+
+            ref = nodes.paragraph()
+
+            rawsource = rf":external:py:class:`{reftarget}`"
+            xref = sphinx.addnodes.pending_xref(rawsource, **attributes)
+            xref += nodes.literal(reftarget, reftarget, classes=["xref"])
+            # ref += nodes.inline(reftarget, reftarget)
+
+            ref += xref
+            item = nodes.list_item("", ref)
+            res += item
+
+        return [res]
+
+
+def setup(app):
+    app.add_directive("print-supported-dists", SupportedDistributionsDirective)
