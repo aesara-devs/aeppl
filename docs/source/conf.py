@@ -84,9 +84,10 @@ class SupportedDistributionsDirective(SphinxDirective):
 
         supported_dists = tuple(
             mtype.__name__
-            for mtype in _logprob.registry.keys()
+            for mtype, mfunc in _logprob.registry.items()
             if issubclass(mtype, RandomVariable)
             and not mtype.__module__.startswith(r"aeppl.")
+            and not mfunc.__name__ == "transformed_logprob"
         )
 
         res = nodes.bullet_list()
