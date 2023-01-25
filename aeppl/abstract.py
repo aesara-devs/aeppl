@@ -144,6 +144,7 @@ class ValuedVariable(Op):
     directly.  An example is `BroadcastTo` lifting through `RandomVariable`\s.
     """
 
+    __props__ = ()
     default_output = 0
     view_map = {0: [0]}
 

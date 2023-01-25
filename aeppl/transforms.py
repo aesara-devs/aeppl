@@ -24,7 +24,7 @@ from aeppl.abstract import (
     valued_variable,
 )
 from aeppl.logprob import _logprob, logprob
-from aeppl.rewriting import measurable_ir_rewrites_db
+from aeppl.rewriting import ir_cleanup_db, measurable_ir_rewrites_db
 
 if TYPE_CHECKING:
     from aesara.graph.rewriting.basic import NodeRewriter
@@ -75,6 +75,7 @@ class TransformedVariable(Op):
 
     """
 
+    __props__ = ()
     view_map = {0: [0]}
 
     def make_node(self, tran_value: TensorVariable, value: TensorVariable):
@@ -101,8 +102,12 @@ transformed_variable = TransformedVariable()
 @register_useless
 @node_rewriter([TransformedVariable])
 def remove_TransformedVariables(fgraph, node):
-    if isinstance(node.op, TransformedVariable):
-        return [node.inputs[0]]
+    return [node.inputs[0]]
+
+
+ir_cleanup_db.register(
+    "remove-TransformedVariables", in2out(remove_TransformedVariables), "basic"
+)
 
 
 class RVTransform(abc.ABC):

@@ -5,7 +5,7 @@ from aesara.compile.mode import optdb
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.rewriting.basic import GraphRewriter, node_rewriter
+from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
 from aesara.graph.rewriting.db import EquilibriumDB, RewriteDatabaseQuery, SequenceDB
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.extra_ops import BroadcastTo
@@ -277,3 +277,18 @@ def construct_ir_fgraph(
     fgraph.replace_all(new_to_old, reason="undo-unvalued-measurables")
 
     return fgraph, rv_value_clones, memo
+
+
+@register_useless
+@node_rewriter([ValuedVariable])
+def remove_ValuedVariable(fgraph, node):
+    return [node.inputs[1]]
+
+
+ir_cleanup_db = SequenceDB()
+ir_cleanup_db.name = "ir_cleanup_db"
+ir_cleanup_db.register(
+    "remove-intermediate-ir",
+    in2out(local_remove_DiracDelta, remove_ValuedVariable),
+    "basic",
+)

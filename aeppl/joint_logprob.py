@@ -8,7 +8,7 @@ from aesara.tensor.var import TensorVariable
 
 from aeppl.abstract import ValuedVariable, get_measurable_outputs
 from aeppl.logprob import _logprob
-from aeppl.rewriting import construct_ir_fgraph
+from aeppl.rewriting import construct_ir_fgraph, ir_cleanup_db
 
 if TYPE_CHECKING:
     from aesara.graph.basic import Apply, Variable
@@ -219,11 +219,9 @@ def conditional_logprob(
         #     for node in io_toposort(graph_inputs([rv_logprobs]), outputs):
         #         compute_test_value(node)
 
-    # Replace `ValuedVariable`s with their values
+    # Remove unneeded IR elements from the graph
     rv_logprobs_fg = FunctionGraph(outputs=tuple(logprob_vars.values()), clone=False)
-    rv_logprobs_fg.replace_all(
-        tuple((valued_var, valued_var.owner.inputs[1]) for valued_var in fgraph.outputs)
-    )
+    ir_cleanup_db.query("+basic").rewrite(rv_logprobs_fg)
 
     return logprob_vars, value_vars
 

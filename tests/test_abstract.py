@@ -2,6 +2,7 @@ import aesara
 import aesara.tensor as at
 import numpy as np
 import pytest
+from aesara.compile.mode import get_default_mode
 from aesara.gradient import NullTypeGradError, grad
 from aesara.tensor.random.basic import NormalRV
 
@@ -113,7 +114,9 @@ def test_valued_variable():
     obs_var = valued_variable(rv_var, rv_vv)
 
     rv_val = np.zeros(3)
-    res = obs_var.eval({rv_var: rv_val, rv_vv: np.ones(3)})
+    mode = get_default_mode().excluding("remove_ValuedVariable")
+    obs_var_fn = aesara.function([rv_var, rv_vv], obs_var, mode=mode)
+    res = obs_var_fn(rv_val, np.ones(3))
     assert np.array_equal(res, rv_val)
 
     with pytest.raises(NullTypeGradError):
