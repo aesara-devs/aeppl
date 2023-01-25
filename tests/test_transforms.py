@@ -190,11 +190,17 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
     a_trans_op = _default_transformed_rv(a.owner.op, a.owner).op
     transform = a_trans_op.transform
 
+    # Remove the static shape assumptions from the value variable so that it's
+    # easier to construct the numerical Jacobian reference values in higher
+    # dimensions
+    a_value_var_gen = at.tensor(
+        dtype=a_value_var.type.dtype, shape=(None,) * a_value_var.type.ndim
+    )
     a_forward_fn = aesara.function(
-        [a_value_var], transform.forward(a_value_var, *a.owner.inputs)
+        [a_value_var_gen], transform.forward(a_value_var_gen, *a.owner.inputs)
     )
     a_backward_fn = aesara.function(
-        [a_value_var], transform.backward(a_value_var, *a.owner.inputs)
+        [a_value_var_gen], transform.backward(a_value_var_gen, *a.owner.inputs)
     )
     log_jac_fn = aesara.function(
         [a_value_var],
