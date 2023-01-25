@@ -3,6 +3,9 @@ import os
 import sphinx.addnodes
 import sphinx.directives
 from docutils import nodes
+from docutils.frontend import OptionParser
+from docutils.utils import new_document
+from sphinx.parsers import RSTParser
 from sphinx.util.docutils import SphinxDirective
 
 import aeppl
@@ -110,5 +113,41 @@ class SupportedDistributionsDirective(SphinxDirective):
         return [res]
 
 
+class InvertibleTransformationsDirective(SphinxDirective):
+    def run(self):
+        import inspect
+        import sys
+
+        import aeppl.transforms as transforms
+
+        invertible_transforms = (
+            mname
+            for mname, mtype in inspect.getmembers(sys.modules["aeppl.transforms"])
+            if inspect.isclass(mtype)
+            and issubclass(mtype, transforms.RVTransform)
+            and not mtype == transforms.RVTransform
+        )
+
+        rst = ".. autosummary::\n"
+        rst += "   :toctree: _generated\n\n"
+        for transform_name in invertible_transforms:
+            rst += f"   aeppl.transforms.{transform_name}\n"
+
+        return self.parse_rst(rst)
+
+    def parse_rst(self, text: str):
+        parser = RSTParser()
+        parser.set_application(self.env.app)
+
+        settings = OptionParser(
+            defaults=self.env.settings,
+            components=(RSTParser,),
+            read_config_files=True,
+        ).get_default_values()
+        document = new_document("<rst-doc>", settings=settings)
+        parser.parse(text, document)
+        return [document.children[1]]
+
 def setup(app):
     app.add_directive("print-supported-dists", SupportedDistributionsDirective)
+    app.add_directive("print-invertible-transforms", InvertibleTransformationsDirective)
