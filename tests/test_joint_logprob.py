@@ -3,7 +3,7 @@ import aesara.tensor as at
 import numpy as np
 import pytest
 import scipy.stats.distributions as sp
-from aesara.graph.basic import ancestors, equal_computations
+from aesara.graph.basic import ancestors, applys_between, equal_computations
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -13,6 +13,7 @@ from aesara.tensor.subtensor import (
     Subtensor,
 )
 
+from aeppl.abstract import ValuedVariable
 from aeppl.joint_logprob import conditional_logprob, joint_logprob
 from aeppl.logprob import logprob
 from aeppl.utils import rvs_to_value_vars, walk_model
@@ -279,3 +280,22 @@ def test_deprecations():
 
     with pytest.warns(DeprecationWarning):
         conditional_logprob(realized={X: x}, warn_missing_rvs=True)
+
+
+def test_no_output_ValuedVariables():
+    srng = at.random.RandomStream(0)
+
+    X_at = at.matrix("X")
+    tau_rv = srng.halfcauchy(1)
+    beta_rv = srng.normal(0, tau_rv, size=X_at.shape[-1])
+
+    eta = X_at @ beta_rv
+    p = at.sigmoid(-eta)
+    Y_rv = srng.bernoulli(p)
+
+    logdensity, vvs = joint_logprob(Y_rv, beta_rv, tau_rv)
+
+    assert not any(
+        isinstance(node.op, ValuedVariable)
+        for node in applys_between(ins=vvs, outs=(logdensity,))
+    )
