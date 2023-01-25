@@ -112,5 +112,42 @@ class SupportedDistributionsDirective(SphinxDirective):
         return [res]
 
 
+class InvertibleTransformationsDirective(SphinxDirective):
+    def run(self):
+        import inspect
+        import sys
+
+        import aeppl.transforms as transforms
+
+        invertible_transforms = (
+            mname
+            for mname, mtype in inspect.getmembers(sys.modules["aeppl.transforms"])
+            if inspect.isclass(mtype)
+            and issubclass(mtype, transforms.RVTransform)
+            and not mtype == transforms.RVTransform
+        )
+
+        res = nodes.bullet_list()
+        for transform_name in invertible_transforms:
+            attributes = {}
+            reftarget = f"aeppl.transforms.{transform_name}"
+            attributes["reftarget"] = reftarget
+            attributes["reftype"] = "class"
+            attributes["refdomain"] = "py"
+
+            ref = nodes.paragraph()
+
+            rawsource = rf":py:class:`{reftarget}`"
+            xref = sphinx.addnodes.pending_xref(rawsource, **attributes)
+            xref += nodes.literal(reftarget, reftarget, classes=["xref"])
+
+            ref += xref
+            item = nodes.list_item("", ref)
+            res += item
+
+        return [res]
+
+
 def setup(app):
     app.add_directive("print-supported-dists", SupportedDistributionsDirective)
+    app.add_directive("print-invertible-transforms", InvertibleTransformationsDirective)
