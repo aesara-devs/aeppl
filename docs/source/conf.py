@@ -30,7 +30,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
-    "myst_nb",
+    "sphinx_design",
     "sphinx_copybutton",
 ]
 
@@ -50,17 +50,19 @@ add_function_parentheses = False
 
 # -- Options for extensions
 
-nb_execution_mode = "auto"
-# execution_excludepatterns = ["*.ipynb"]
-myst_enable_extensions = ["colon_fence", "deflist", "dollarmath", "amsmath"]
-
 autosummary_generate = True
 always_document_param_types = True
 
 # -- Options for HTML output
 
-html_theme = "furo"
+html_theme = "sphinx_book_theme"
+html_theme_options = {
+    "repository_url": "https://github.com/aesara-devs/aeppl",
+    "use_repository_button": True,
+    "use_download_button": False,
+}
 html_logo = "logo.png"
+html_title = ""
 
 intersphinx_mapping = {
     "aesara": ("https://aesara.readthedocs.io/en/latest", None),
