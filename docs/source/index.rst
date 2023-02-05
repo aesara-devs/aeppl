@@ -40,11 +40,36 @@ Example
    numba_fn = aesara.function([s_vv, y_vv], logprob, mode="NUMBA")
    jax_fn = aesara.function([s_vv, y_vv], logprob, mode="JAX")
 
+Install AePPL
+=============
+
+AePPL installation can happen in a few different ways. You can install AePPL with `conda` or with `pip`. To get the bleeding edge version you can install `aeppl-nightly.`
+
+.. tab-set::
+
+     .. tab-item:: PyPi
+
+         .. code:: bash
+
+             pip install aeppl
+
+
+     .. tab-item:: Conda
+
+         .. code:: bash
+
+            conda install -c conda-forge aeppl
+
+
+     .. tab-item:: Nightly
+
+         .. code:: bash
+
+             pip install aeppl-nightly
 
 Getting Started
 ===============
 
-- `Installation instructions <https://github.com/aesara-devs/aeppl#installation>`_
 - :doc:`Examples </examples>`
 - :doc:`Supported random variables </api/distributions>`
 - :doc:`Compute my model's log-density </api/logdensity>`
