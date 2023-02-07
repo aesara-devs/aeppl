@@ -6,6 +6,7 @@
 [![Downloads][downloads-badge]][releases]
 [![Contributors][contributors-badge]][contributors]
  </br>
+[![Gitter][gitter-badge]][gitter]
 [![Discord][discord-badge]][discord]
 [![Twitter][twitter-badge]][twitter]
 
@@ -14,8 +15,8 @@ Aeppl provides tools for a[e]PPL written in [Aesara](https://github.com/aesara-d
 *Build arbitrarily complex probabilistic models. If it is mathematically defined, AePPL will support it.*
 
 [Features](#features) •
-[Examples](#examples) •
-[Installation](#installation) •
+[Get started](#get-started) •
+[Install](#install) •
 [Get help](#get-help) •
 [Contribute](#contribute)
 
@@ -33,7 +34,7 @@ Aeppl provides tools for a[e]PPL written in [Aesara](https://github.com/aesara-d
 - `RandomVariable`-aware pretty printing and LaTeX output
 
 
-## Examples
+## Get started
 
 Using `aeppl`, one can create a joint log-density graph from a graph
 containing Aesara `RandomVariable`s:
@@ -130,7 +131,7 @@ print(pprint(logprob))
 Take a look at the [documentation][documentation-examples] for more examples.
 
 
-## Installation
+## Install
 
 The latest release of `aeppl` can be installed from PyPI using `pip`:
 
@@ -152,13 +153,13 @@ pip install aeppl-nightly
 
 ## Get help
 
-Report bugs by opening an [issue][issues]. If you have a question regarding the usage of AePPL, start a [discussion][discussions]. For real-time feedback or more general chat about AePPL use our [Discord server][discord].
+Report bugs by opening an [issue][issues]. If you have a question regarding the usage of AePPL, start a [discussion][discussions] or visit our [Discord server][discord] and [Gitter room][gitter] chats.
 
 ## Contribute
 
-AePPL welcomes constributions. A good place to start contributing is by looking at the [issues][issues].
+AePPL welcomes contributions. To start contributing, take a look at the open [issues][issues].
 
-If you want to implement a new feature, open a [discussion][discussions] or come chat with us on [Discord][discord].
+If you want to implement a new feature, open a [discussion][discussions] or come chat with us on [Discord][discord] or [Gitter][gitter].
 
 [contributors]: https://github.com/aesara-devs/aeppl/graphs/contributors
 [contributors-badge]: https://img.shields.io/github/contributors/aesara-devs/aeppl?style=flat-square&logo=github&logoColor=white&color=ECEFF4
@@ -167,6 +168,8 @@ If you want to implement a new feature, open a [discussion][discussions] or come
 [downloads-badge]: https://img.shields.io/pypi/dm/aeppl?style=flat-square&logo=pypi&logoColor=white&color=8FBCBB
 [discord]: https://discord.gg/h3sjmPYuGJ
 [discord-badge]: https://img.shields.io/discord/1072170173785723041?color=81A1C1&logo=discord&logoColor=white&style=flat-square
+[gitter]: https://gitter.im/aesara-devs/aeppl
+[gitter-badge]: https://img.shields.io/gitter/room/aesara-devs/aeppl?color=81A1C1&logo=matrix&logoColor=white&style=flat-square
 [issues]: https://github.com/aesara-devs/aeppl/issues
 [releases]: https://github.com/aesara-devs/aeppl/releases
 [twitter]: https://twitter.com/AesaraDevs
