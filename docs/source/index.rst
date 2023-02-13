@@ -77,6 +77,7 @@ Getting Started
 .. toctree::
   :hidden:
 
+  Roadmap <https://github.com/orgs/aesara-devs/projects/2>
   examples
   api/index
 
