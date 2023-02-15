@@ -56,37 +56,14 @@ associated variables and their values:
 
 .. autoclass:: aeppl.transforms.TransformValuesRewrite
 
+
 ---------------------
 Invertible transforms
 ---------------------
 
 AePPL currently supports transforms using the following (invertible) Aesara operators. This means that AePPL can compute the log-probability of a random variable that is the result of one of the following transformations applied to another random variable:
 
-- `aesara.tensor.add`
-- `aesara.tensor.sub`
-- `aesara.tensor.mul`
-- `aesara.tensor.true_div`
-- `aesara.tensor.exponential`
-- `aesara.tensor.exp`
-- `aesara.tensor.log`
-
-One can also apply the following transforms directly:
-
-.. autoclass:: aeppl.transforms.LocTransform
-.. autoclass:: aeppl.transforms.ScaleTransform
-.. autoclass:: aeppl.transforms.LogTransform
-.. autoclass:: aeppl.transforms.ExpTransform
-.. autoclass:: aeppl.transforms.ReciprocalTransform
-.. autoclass:: aeppl.transforms.IntervalTransform
-.. autoclass:: aeppl.transforms.LogOddsTransform
-.. autoclass:: aeppl.transforms.SimplexTransform
-.. autoclass:: aeppl.transforms.CircularTransform
-
-These transformations can be chained using:
-
-
-.. autoclass:: aeppl.transforms.ChainedTransform
-
+.. print-invertible-transforms::
 
 ---------
 Censoring

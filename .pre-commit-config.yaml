@@ -29,6 +29,9 @@ repos:
     hooks:
       - id: mypy
         args: [--ignore-missing-imports]
+        additional_dependencies:
+        - numpy>=1.20
+        - types-docutils
   - repo: https://github.com/humitos/mirrors-autoflake.git
     rev: v1.1
     hooks:
