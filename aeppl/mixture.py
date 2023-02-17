@@ -270,7 +270,7 @@ def mixture_replace(fgraph, node):
     for i, component_rv in enumerate(mixture_res):
         # We create custom types for the mixture components and assign them
         # null `get_measurable_outputs` dispatches so that they aren't
-        # erroneously encountered in places like `factorized_joint_logprob`.
+        # erroneously encountered in places like `conditional_logprob`.
         new_node = assign_custom_measurable_outputs(component_rv.owner)
         out_idx = component_rv.owner.outputs.index(component_rv)
         new_comp_rv = new_node.outputs[out_idx]

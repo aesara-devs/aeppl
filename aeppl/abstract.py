@@ -79,7 +79,7 @@ def assign_custom_measurable_outputs(
 
     If `measurable_outputs_fn` isn't specified, a no-op is used; the result is
     a clone of `node` that will effectively be ignored by
-    `factorized_joint_logprob`.
+    `conditional_logprob`.
 
     Parameters
     ==========

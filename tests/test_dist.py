@@ -409,7 +409,7 @@ def test_discrete_Markov_chain_logp(Gammas, gamma_0, obs, exp_res):
 
 
 def test_discrete_Markov_chain_factorized_logp():
-    """Make sure that discrete Markov chains are picked up by `factorized_joint_logprob`.
+    """Make sure that discrete Markov chains are picked up by `conditional_logprob`.
 
     This really tests the `_get_measurable_outputs` dispatch.
 
