@@ -190,7 +190,6 @@ measurable_ir_rewrites_db.register(
 def construct_measurable_rounding(
     fgraph: FunctionGraph, node: Node, rounded_op: "Op"
 ) -> Optional[List["Variable"]]:
-
     if isinstance(node.op, MeasurableRound):
         return None  # pragma: no cover
 

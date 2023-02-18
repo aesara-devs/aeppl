@@ -221,7 +221,6 @@ def test_transformed_logprob(at_dist, dist_params, sp_dist, size):
         if a_val.ndim > 0:
 
             def jacobian_estimate_novec(value):
-
                 dim_diff = a_val.ndim - value.ndim
                 if dim_diff > 0:
                     # Make sure the dimensions match the expected input
@@ -579,7 +578,6 @@ def test_log_transform_rv():
 )
 @pytest.mark.parametrize("right", [True, False])
 def test_transform_measurable_add(rv_size, loc_type, right):
-
     loc = loc_type("loc")
     X_rv = at.random.normal(0, 1, size=rv_size, name="X")
     if right:
@@ -611,7 +609,6 @@ def test_transform_measurable_add(rv_size, loc_type, right):
 )
 @pytest.mark.parametrize("right", [True, False])
 def test_scale_transform_rv(rv_size, scale_type, right):
-
     scale = scale_type("scale")
     X_rv = at.random.normal(0, 1, size=rv_size, name="X")
     if right:
@@ -749,7 +746,6 @@ def test_transform_measurable_sub():
 
 
 def test_transform_reused_measurable():
-
     srng = at.random.RandomStream(0)
 
     X_rv = srng.normal(0, 1, name="X")

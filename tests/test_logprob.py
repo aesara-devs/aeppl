@@ -96,7 +96,6 @@ def scipy_logprob_tester(
     ],
 )
 def test_uniform_logprob(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -116,7 +115,6 @@ def test_uniform_logprob(dist_params, obs, size):
     ],
 )
 def test_uniform_logcdf(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -137,7 +135,6 @@ def test_uniform_logcdf(dist_params, obs, size):
     ],
 )
 def test_normal_logprob(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -155,7 +152,6 @@ def test_normal_logprob(dist_params, obs, size):
     ],
 )
 def test_normal_logcdf(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -173,7 +169,6 @@ def test_normal_logcdf(dist_params, obs, size):
     ],
 )
 def test_normal_icdf(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -191,7 +186,6 @@ def test_normal_icdf(dist_params, obs, size):
     ],
 )
 def test_halfnormal_logprob(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -210,7 +204,6 @@ def test_halfnormal_logprob(dist_params, obs, size):
     ],
 )
 def test_beta_logprob(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -229,7 +222,6 @@ def test_beta_logprob(dist_params, obs, size):
     ],
 )
 def test_exponential_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -254,7 +246,6 @@ def test_exponential_logprob(dist_params, obs, size, error):
     ],
 )
 def test_laplace_logprob(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -276,7 +267,6 @@ def test_laplace_logprob(dist_params, obs, size):
     ],
 )
 def test_lognormal_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -301,7 +291,6 @@ def test_lognormal_logprob(dist_params, obs, size, error):
     ],
 )
 def test_pareto_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -326,7 +315,6 @@ def test_pareto_logprob(dist_params, obs, size, error):
     ],
 )
 def test_halfcauchy_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -351,7 +339,6 @@ def test_halfcauchy_logprob(dist_params, obs, size, error):
     ],
 )
 def test_gamma_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -376,7 +363,6 @@ def test_gamma_logprob(dist_params, obs, size, error):
     ],
 )
 def test_invgamma_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -403,7 +389,6 @@ def test_invgamma_logprob(dist_params, obs, size, error):
     ],
 )
 def test_chisquare_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -428,7 +413,6 @@ def test_chisquare_logprob(dist_params, obs, size, error):
     ],
 )
 def test_wald_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -453,7 +437,6 @@ def test_wald_logprob(dist_params, obs, size, error):
     ],
 )
 def test_weibull_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -488,7 +471,6 @@ def test_weibull_logprob(dist_params, obs, size, error):
     ],
 )
 def test_vonmises_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -521,7 +503,6 @@ def test_vonmises_logprob(dist_params, obs, size, error):
     ],
 )
 def test_triangular_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -548,7 +529,6 @@ def test_triangular_logprob(dist_params, obs, size, error):
     ],
 )
 def test_gumbel_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -573,7 +553,6 @@ def test_gumbel_logprob(dist_params, obs, size, error):
     ],
 )
 def test_logistic_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -604,7 +583,6 @@ def test_logistic_logprob(dist_params, obs, size, error):
     ],
 )
 def test_binomial_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -634,7 +612,6 @@ def test_binomial_logprob(dist_params, obs, size, error):
     ],
 )
 def test_betabinomial_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -659,7 +636,6 @@ def test_betabinomial_logprob(dist_params, obs, size, error):
     ],
 )
 def test_bernoulli_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -689,7 +665,6 @@ def test_bernoulli_logprob(dist_params, obs, size, error):
     ],
 )
 def test_poisson_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -719,7 +694,6 @@ def test_poisson_logprob(dist_params, obs, size, error):
     ],
 )
 def test_poisson_logcdf(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -755,7 +729,6 @@ def test_poisson_logcdf(dist_params, obs, size, error):
     ],
 )
 def test_nbinom_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -785,7 +758,6 @@ def test_nbinom_logprob(dist_params, obs, size, error):
     ],
 )
 def test_geometric_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -815,7 +787,6 @@ def test_geometric_logprob(dist_params, obs, size, error):
     ],
 )
 def test_geometric_logcdf(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -842,7 +813,6 @@ def test_geometric_logcdf(dist_params, obs, size, error):
     ],
 )
 def test_geometric_icdf(dist_params, obs, size):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -870,7 +840,6 @@ def test_geometric_icdf(dist_params, obs, size):
     ],
 )
 def test_hypergeometric_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -992,7 +961,6 @@ def test_studentt_logprob(dist_params, obs, size, error):
     ],
 )
 def test_categorical_logprob(dist_params, obs, size, exc_type, chk_bcast):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -1037,7 +1005,6 @@ def test_categorical_logprob(dist_params, obs, size, exc_type, chk_bcast):
     ],
 )
 def test_mvnormal_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -1070,7 +1037,6 @@ def test_mvnormal_logprob(dist_params, obs, size, error):
     ],
 )
 def test_dirichlet_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -1103,7 +1069,6 @@ def test_dirichlet_logprob(dist_params, obs, size, error):
     ],
 )
 def test_multinomial_logprob(dist_params, obs, size, error):
-
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
@@ -1138,7 +1103,6 @@ def test_CheckParameter():
     ],
 )
 def test_dirac_delta_logprob(dist_params, obs):
-
     dist_params_at, obs_at, _ = create_aesara_params(dist_params, obs, ())
     dist_params = dict(zip(dist_params_at, dist_params))
 

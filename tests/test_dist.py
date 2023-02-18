@@ -59,7 +59,6 @@ def test_simulate_poiszero_hmm():
 
 
 def test_discrete_markov_chain_random_seed():
-
     test_Gamma_base = np.array([[[0.5, 0.5], [0.5, 0.5]]])
     test_Gamma = np.broadcast_to(test_Gamma_base, (10, 2, 2))
     test_gamma_0 = np.r_[0.5, 0.5]
@@ -587,7 +586,6 @@ def test_switching_process_random():
 
 
 def test_switching_process_logp():
-
     srng = atr.RandomStream(2023532)
 
     states_rv = srng.categorical([1 / 3, 1 / 3, 1 / 3], size=6, name="states")

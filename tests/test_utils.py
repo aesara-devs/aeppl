@@ -74,7 +74,6 @@ def test_walk_model():
 
 
 def test_rvs_to_value_vars():
-
     a = at.random.uniform(0.0, 1.0)
     a.name = "a"
     a.tag.value_var = a_value_var = a.clone()

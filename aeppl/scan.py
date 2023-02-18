@@ -84,7 +84,6 @@ def convert_outer_out_to_in(
     old_inner_outs_to_outer_outs = {}
 
     for oo_var in outer_out_vars:
-
         var_info = output_scan_args.find_among_fields(
             oo_var, field_filter=lambda x: x.startswith("outer_out")
         )
@@ -100,7 +99,6 @@ def convert_outer_out_to_in(
     # update the outer and inner-inputs to reflect the addition of new
     # inner-inputs.
     for old_inner_out_var, oo_var in old_inner_outs_to_outer_outs.items():
-
         # Couldn't one do the same with `var_info`?
         inner_out_info = output_scan_args.find_among_fields(
             old_inner_out_var, field_filter=lambda x: x.startswith("inner_out")
@@ -267,7 +265,6 @@ def construct_scan(
 
 @_logprob.register(MeasurableScan)
 def logprob_ScanRV(op, values, *inputs, name=None, **kwargs):
-
     new_node = op.make_node(*inputs)
     scan_args = ScanArgs.from_node(new_node)
     rv_outer_outs = get_random_outer_outputs(scan_args)
@@ -429,7 +426,6 @@ def update_scan_value_vars(
     # We're going to replace the user's random variable/value variable mappings
     # with ones that map directly to outputs of this `Scan`.
     for rv_val_var, out_idx in indirect_rv_vars:
-
         # `rv_var` is the `*Subtensor*`
         rv_var, val_var = rv_val_var.owner.inputs
 
