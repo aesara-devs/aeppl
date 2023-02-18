@@ -177,7 +177,6 @@ def conditional_logprob(
     logprob_vars = {}
 
     for rv_node, rv_val_pairs in nodes_to_vals.items():
-
         outputs = get_measurable_outputs(rv_node.op, rv_node)
 
         if not outputs:

@@ -8,7 +8,6 @@ from aeppl.printing import latex_pprint, pprint
 
 
 def test_PreamblPPrinter():
-
     # Make sure we can print a `Function` and `FunctionGraph`
     mu = at.scalar("\\mu")
     sigma = at.scalar("\\sigma")
@@ -29,7 +28,6 @@ def test_PreamblPPrinter():
 
 
 def test_notex_print():
-
     normalrv_noname_expr = at.scalar("b") * at.random.normal(
         at.scalar("\\mu"), at.scalar("\\sigma")
     )
@@ -101,7 +99,6 @@ def test_notex_print():
 
 
 def test_tex_print():
-
     normalrv_noname_expr = at.scalar("b") * at.random.normal(
         at.scalar("\\mu"), at.scalar("\\sigma")
     )

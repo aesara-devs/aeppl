@@ -149,7 +149,6 @@ class ValuedVariable(Op):
     view_map = {0: [0]}
 
     def make_node(self, rv, value):
-
         assert isinstance(rv.type, TensorType)
         out_rv = rv.type()
 

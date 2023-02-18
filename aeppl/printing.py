@@ -539,7 +539,6 @@ class PreamblePPrinter(PPrinter):
         # categories when the joined line is too long.
         preamble_lines = []
         for v in pstate.preamble_dict.values():
-
             if isinstance(v, Mapping):
                 v = list(v.values())
 
