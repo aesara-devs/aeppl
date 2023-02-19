@@ -65,7 +65,7 @@ AePPL currently supports transforms using the following (invertible) Aesara oper
 - `aesara.tensor.add`
 - `aesara.tensor.sub`
 - `aesara.tensor.mul`
-- `aesara.tensor.true_div`
+- `aesara.tensor.true_divide`
 - `aesara.tensor.exponential`
 - `aesara.tensor.exp`
 - `aesara.tensor.log`

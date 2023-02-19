@@ -10,7 +10,7 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
-from aesara.tensor.math import add, exp, log, mul, reciprocal, sub, true_div
+from aesara.tensor.math import add, exp, log, mul, reciprocal, sub, true_divide
 from aesara.tensor.rewriting.basic import register_useless
 from aesara.tensor.var import TensorVariable
 from typing_extensions import Protocol
@@ -386,9 +386,9 @@ def measurable_elemwise_logprob(
 
 
 @register_measurable_ir
-@node_rewriter([true_div])
-def measurable_true_div(fgraph, node):
-    r"""Rewrite a `true_div` node to a `MeasurableVariable`.
+@node_rewriter([true_divide])
+def measurable_true_divide(fgraph, node):
+    r"""Rewrite a `true_divide` node to a `MeasurableVariable`.
 
     TODO FIXME: We need update/clarify the canonicalization situation so that
     these can be reliably rewritten as products of reciprocals.
