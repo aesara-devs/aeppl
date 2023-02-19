@@ -669,6 +669,6 @@ latex_pprint.assign(at.invert, PatternPrinter(("\\lnot %(0)s", -1000)))
 
 latex_pprint.assign(_dot, OperatorPrinter("\\;", -1, "left"))
 latex_pprint.assign(at.mul, OperatorPrinter("\\odot", -1, "either"))
-latex_pprint.assign(at.true_div, PatternPrinter(("\\frac{%(0)s}{%(1)s}", -1000)))
+latex_pprint.assign(at.true_divide, PatternPrinter(("\\frac{%(0)s}{%(1)s}", -1000)))
 latex_pprint.assign(at.sqrt, PatternPrinter(("\\sqrt{%(0)s}", -1000)))
 latex_pprint.assign(at.pow, PatternPrinter(("{%(0)s}^{%(1)s}", -1000)))

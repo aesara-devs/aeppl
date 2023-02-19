@@ -691,7 +691,7 @@ def test_invalid_broadcasted_transform_rv_fails():
 
 
 @pytest.mark.parametrize("a", (1.0, 2.0))
-def test_transform_measurable_true_div(a):
+def test_transform_measurable_true_divide(a):
     shape, scale = 3, 5
     X_rv = at.random.gamma(shape, scale, name="X")
 
