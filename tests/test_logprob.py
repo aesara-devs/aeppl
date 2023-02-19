@@ -4,7 +4,7 @@ import aesara.tensor as at
 import numpy as np
 import pytest
 import scipy.stats as stats
-from aesara import function
+from aesara import config, function
 
 from aeppl.dists import dirac_delta
 from aeppl.logprob import ParameterValueError, icdf, logcdf, logprob
@@ -70,7 +70,10 @@ def scipy_logprob_tester(
     else:
         raise ValueError(f"test must be one of (logprob, logcdf, icdf), got {test}")
 
-    aesara_res_val = aesara_res.eval(dist_params)
+    aesara_fn = function(
+        tuple(dist_params.keys()), aesara_res, on_unused_input="ignore"
+    )
+    aesara_res_val = aesara_fn(*tuple(dist_params.values()))
 
     numpy_res = np.asarray(test_fn(obs, *dist_params.values()))
 
@@ -452,9 +455,14 @@ def test_weibull_logprob(dist_params, obs, size, error):
 
 
 @pytest.mark.parametrize(
-    "dist_params, obs, size, error",
+    "dist_params, obs, size, param_error",
     [
-        ((-1, -1.0), np.array([-np.pi, -0.5, 0, 1, np.pi], dtype=np.float64), (), True),
+        (
+            (-1, -1.0),
+            np.array([-np.pi, -0.5, 0, 1, np.pi], dtype=np.float64),
+            (),
+            True,
+        ),
         (
             (1.5, 10.5),
             np.array([-np.pi, -0.5, 0, 1, np.pi], dtype=np.float64),
@@ -467,25 +475,36 @@ def test_weibull_logprob(dist_params, obs, size, error):
             (2, 3),
             False,
         ),
-        ((10, 1.0), np.array([-np.pi, -0.5, 0, 1, np.pi], dtype=np.float64), (), False),
+        (
+            (10, 1.0),
+            np.array([-np.pi, -0.5, 0, 1, np.pi], dtype=np.float64),
+            (),
+            False,
+        ),
     ],
 )
-def test_vonmises_logprob(dist_params, obs, size, error):
+def test_vonmises_logprob(dist_params, obs, size, param_error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
     x = at.random.vonmises(*dist_params_at, size=size_at)
 
-    cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
+    param_cm = (
+        contextlib.suppress() if not param_error else pytest.raises(ParameterValueError)
+    )
+    i0_cm = (
+        contextlib.suppress()
+        if not param_error
+        else pytest.raises(
+            UserWarning, match="The Op i0 does not provide a C implementation"
+        )
+    )
 
     def scipy_logprob(obs, mu, kappa):
         return stats.vonmises.logpdf(obs, kappa, loc=mu)
 
-    with pytest.raises(
-        UserWarning, match="The Op i0 does not provide a C implementation"
-    ):
-        with cm:
-            scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+    with config.change_flags(on_opt_error="warn"), param_cm, i0_cm:
+        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
