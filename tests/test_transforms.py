@@ -675,17 +675,6 @@ def test_transformed_rv_and_value():
     )
 
 
-def test_loc_transform_multiple_rvs_fails1():
-    srng = at.random.RandomStream(0)
-
-    x_rv1 = srng.normal(name="x_rv1")
-    x_rv2 = srng.normal(name="x_rv2")
-    y_rv = x_rv1 + x_rv2
-
-    with pytest.raises(DensityNotFound):
-        joint_logprob(y_rv)
-
-
 def test_nested_loc_transform_multiple_rvs_fails2():
     srng = at.random.RandomStream(0)
 
@@ -816,6 +805,7 @@ def test_transform_sub_valued():
     Z_rv = A_rv - X_rv
 
     logp, (z_vv, a_vv) = joint_logprob(Z_rv, A_rv)
+
     z_logp_fn = aesara.function([z_vv, a_vv], logp)
     exp_logp = sp.stats.norm.logpdf(5.0 - 7.3, 1.0) + sp.stats.norm.logpdf(5.0, 1.0)
     assert np.isclose(z_logp_fn(7.3, 5.0), exp_logp)

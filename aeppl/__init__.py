@@ -12,6 +12,7 @@ from aeppl.printing import latex_pprint, pprint
 # isort: off
 # Add rewrites to the DBs
 import aeppl.censoring
+import aeppl.convolutions
 import aeppl.cumsum
 import aeppl.mixture
 import aeppl.scan
