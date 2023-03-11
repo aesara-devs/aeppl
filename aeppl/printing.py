@@ -11,10 +11,10 @@ from aesara.compile.function.types import Function
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.printing import (
-    IgnorePrinter,
     OperatorPrinter,
     PatternPrinter,
     PPrinter,
+    Printer,
     PrinterState,
 )
 from aesara.printing import pprint as at_pprint
@@ -25,7 +25,7 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import _dot
 from aesara.tensor.random.basic import NormalRV
 from aesara.tensor.random.op import RandomVariable
-from aesara.tensor.random.var import RandomStateSharedVariable
+from aesara.tensor.random.type import RandomType
 from aesara.tensor.rewriting.shape import ShapeFeature
 from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import float_dtypes, int_dtypes, uint_dtypes
@@ -47,7 +47,17 @@ except ImportError:  # pragma: no cover
 PrinterStateType = Union[MutableMapping, PrinterState]
 
 
-class RandomVariablePrinter:
+class IgnorePrinter(Printer):
+    def process(self, output, pstate):
+        if output in pstate.memo:
+            return pstate.memo[output]
+
+        r = ""
+        pstate.memo[output] = r
+        return r
+
+
+class RandomVariablePrinter(Printer):
     r"""Pretty print random variables.
 
     `Op`\s are able to specify their ascii and LaTeX formats via a "print_name"
@@ -100,6 +110,11 @@ class RandomVariablePrinter:
                 "Function %s cannot represent a variable that is "
                 "not the result of a RandomVariable operation" % self.name
             )
+
+        # If this is the RNG object output, then we don't want to print it
+        if isinstance(output.type, RandomType):
+            pstate.memo[output] = ""
+            return ""
 
         op_name = self.name or getattr(node.op, "_print_name", None)
         op_name = op_name or getattr(node.op, "name", None)
@@ -183,7 +198,7 @@ class RandomVariablePrinter:
             return dist_def_str
 
 
-class GenericSubtensorPrinter:
+class GenericSubtensorPrinter(Printer):
     def process(self, r: Variable, pstate: Optional[PrinterStateType]):
         if getattr(r, "owner", None) is None:  # pragma: no cover
             raise TypeError("Can only print `*Subtensor*`s.")
@@ -233,7 +248,7 @@ class GenericSubtensorPrinter:
             return "%s[%s]" % (sub, idx_str)
 
 
-class VariableWithShapePrinter:
+class VariableWithShapePrinter(Printer):
     """Print variable shape info in the preamble.
 
     Also uses readable character names for un-named variables.
@@ -274,7 +289,6 @@ class VariableWithShapePrinter:
                 output,
                 (
                     TensorVariable,
-                    aesara.scalar.basic.ScalarType,
                     aesara.scalar.basic.ScalarVariable,
                 ),
             )
@@ -589,7 +603,7 @@ pprint = PreamblePPrinter()
 pprint.printers.insert(
     0,
     (
-        lambda pstate, r: isinstance(r, (aesara.scalar.basic.ScalarType, Variable)),
+        lambda pstate, r: isinstance(r, Variable),
         VariableWithShapePrinter,
     ),
 )
@@ -637,8 +651,10 @@ pprint.assign(_dot, OperatorPrinter("@", -1, "left"))
 pprint.assign(at.and_, OperatorPrinter("and", -1, "left"))
 pprint.assign(at.or_, OperatorPrinter("or", -1, "left"))
 pprint.assign(Assert, IgnorePrinter())
-pprint.assign(RandomStateSharedVariable, IgnorePrinter())
-# pprint.assign(random_state_type, IgnorePrinter())
+pprint.assign(
+    lambda pstate, r: isinstance(r.type, RandomType),
+    IgnorePrinter(),
+)
 
 subtensor_printer = GenericSubtensorPrinter()
 pprint.assign(Subtensor, subtensor_printer)
@@ -653,7 +669,10 @@ pprint.assign(at.eq, PatternPrinter(("%(0)s == %(1)s", -1000)))
 
 latex_pprint = PreamblePPrinter(pstate_defaults={"latex": True})
 latex_pprint.assign(Assert, IgnorePrinter())
-latex_pprint.assign(RandomStateSharedVariable, IgnorePrinter())
+latex_pprint.assign(
+    lambda pstate, r: isinstance(r.type, RandomType),
+    IgnorePrinter(),
+)
 latex_pprint.printers = copy(pprint.printers)
 latex_pprint.printers_dict = dict(pprint.printers_dict)
 
