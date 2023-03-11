@@ -400,7 +400,7 @@ def measurable_true_divide(fgraph, node):
     # `denominator` is measurable
     res = measurable_reciprocal.transform(fgraph, reciprocal_denominator.owner)
     if res:
-        return measurable_mul.transform(fgraph, at.mul(numerator, res[0]).owner)
+        reciprocal_denominator = res[0]
 
     # `numerator` is measurable
     return measurable_mul.transform(
@@ -424,7 +424,7 @@ def measurable_sub(fgraph, node):
     # `subtrahend` is measurable
     res = measurable_mul.transform(fgraph, mul_subtrahend.owner)
     if res:
-        return measurable_add.transform(fgraph, at.add(minuend, res[0]).owner)
+        mul_subtrahend = res[0]
 
     # TODO FIXME: `local_add_canonizer` will unreliably rewrite expressions like
     # `x - y` to `-y + x` (e.g. apparently when `y` is a constant?) and, as a result,
