@@ -96,7 +96,7 @@ def find_measurable_stacks(
     if not all(
         base_var.owner
         and isinstance(base_var.owner.op, MeasurableVariable)
-        and not isinstance(base_var, ValuedVariable)
+        and not isinstance(base_var.owner.op, ValuedVariable)
         for base_var in base_vars
     ):
         return None  # pragma: no cover
@@ -178,7 +178,7 @@ def find_measurable_dimshuffles(fgraph, node) -> Optional[List[MeasurableDimShuf
     if not (
         base_var.owner
         and isinstance(base_var.owner.op, RandomVariable)
-        and not isinstance(base_var, ValuedVariable)
+        and not isinstance(base_var.owner.op, ValuedVariable)
     ):
         return None  # pragma: no cover
 

@@ -537,7 +537,7 @@ def construct_elemwise_transform(
         for idx, inp in enumerate(node.inputs)
         if inp.owner
         and isinstance(inp.owner.op, MeasurableVariable)
-        and not isinstance(inp, ValuedVariable)
+        and not isinstance(inp.owner.op, ValuedVariable)
     ]
 
     if len(measurable_inputs) != 1:
@@ -562,19 +562,19 @@ def construct_elemwise_transform(
         if (
             var.owner
             and not isinstance(var.owner.op, MeasurableVariable)
-            and not isinstance(var, ValuedVariable)
+            and not isinstance(var.owner.op, ValuedVariable)
         ):
             new_vars.extend(reversed(var.owner.inputs))
 
         return new_vars
 
     if any(
-        ancestor_node
-        for ancestor_node in walk(other_inputs, expand, False)
+        var
+        for var in walk(other_inputs, expand, False)
         if (
-            ancestor_node.owner
-            and isinstance(ancestor_node.owner.op, MeasurableVariable)
-            and not isinstance(ancestor_node, ValuedVariable)
+            var.owner
+            and isinstance(var.owner.op, MeasurableVariable)
+            and not isinstance(var.owner.op, ValuedVariable)
         )
     ):
         return None

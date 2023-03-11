@@ -60,7 +60,7 @@ def find_measurable_cumsums(fgraph, node) -> Optional[List[MeasurableCumsum]]:
     if not (
         base_rv.owner
         and isinstance(base_rv.owner.op, MeasurableVariable)
-        and not isinstance(base_rv, ValuedVariable)
+        and not isinstance(base_rv.owner.op, ValuedVariable)
     ):
         return None  # pragma: no cover
 

@@ -48,7 +48,7 @@ def find_measurable_clips(
     if not (
         base_var.owner
         and isinstance(base_var.owner.op, MeasurableVariable)
-        and not isinstance(base_var, ValuedVariable)
+        and not isinstance(base_var.owner.op, ValuedVariable)
     ):
         return None
 
@@ -199,7 +199,7 @@ def construct_measurable_rounding(
     if not (
         base_var.owner
         and isinstance(base_var.owner.op, MeasurableVariable)
-        and not isinstance(base_var, ValuedVariable)
+        and not isinstance(base_var.owner.op, ValuedVariable)
         # Rounding only makes sense for continuous variables
         and base_var.dtype.startswith("float")
     ):
