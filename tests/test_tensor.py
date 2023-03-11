@@ -11,11 +11,12 @@ from aeppl.rewriting import logprob_rewrites_db
 
 def test_broadcast_conditional():
     r"""Check that `naive_bcast_rv_lift` won't touch valued variables"""
+    srng = at.random.RandomStream(2023532)
 
-    x_rv = at.random.normal(name="x")
+    x_rv = srng.normal(name="x")
     broadcasted_x_rv = at.broadcast_to(x_rv, (2,))
 
-    y_rv = at.random.normal(broadcasted_x_rv, name="y")
+    y_rv = srng.normal(broadcasted_x_rv, name="y")
 
     logp_map, (x_vv, y_vv) = conditional_logprob(x_rv, y_rv)
     assert x_rv in logp_map
@@ -28,9 +29,11 @@ def test_broadcast_conditional():
 
 
 def test_measurable_make_vector():
-    base1_rv = at.random.normal(name="base1")
-    base2_rv = at.random.halfnormal(name="base2")
-    base3_rv = at.random.exponential(name="base3")
+    srng = at.random.RandomStream(2023532)
+
+    base1_rv = srng.normal(name="base1")
+    base2_rv = srng.halfnormal(name="base2")
+    base3_rv = srng.exponential(name="base3")
     y_rv = at.stack((base1_rv, base2_rv, base3_rv))
     y_rv.name = "y"
 
@@ -67,8 +70,10 @@ def test_measurable_make_vector():
     ],
 )
 def test_measurable_join_univariate(size1, size2, axis, concatenate):
-    base1_rv = at.random.normal(size=size1, name="base1")
-    base2_rv = at.random.exponential(size=size2, name="base2")
+    srng = at.random.RandomStream(2023532)
+
+    base1_rv = srng.normal(size=size1, name="base1")
+    base2_rv = srng.exponential(size=size2, name="base2")
     if concatenate:
         y_rv = at.concatenate((base1_rv, base2_rv), axis=axis)
     else:
@@ -131,10 +136,12 @@ def test_measurable_join_univariate(size1, size2, axis, concatenate):
 def test_measurable_join_multivariate(
     size1, supp_size1, size2, supp_size2, axis, concatenate
 ):
-    base1_rv = at.random.multivariate_normal(
+    srng = at.random.RandomStream(2023532)
+
+    base1_rv = srng.multivariate_normal(
         np.zeros(supp_size1), np.eye(supp_size1), size=size1, name="base1"
     )
-    base2_rv = at.random.dirichlet(np.ones(supp_size2), size=size2, name="base2")
+    base2_rv = srng.dirichlet(np.ones(supp_size2), size=size2, name="base2")
     if concatenate:
         y_rv = at.concatenate((base1_rv, base2_rv), axis=axis)
     else:
@@ -166,8 +173,10 @@ def test_measurable_join_multivariate(
 
 
 def test_join_mixed_ndim_supp():
-    base1_rv = at.random.normal(size=3, name="base1")
-    base2_rv = at.random.dirichlet(np.ones(3), name="base2")
+    srng = at.random.RandomStream(2023532)
+
+    base1_rv = srng.normal(size=3, name="base1")
+    base2_rv = srng.dirichlet(np.ones(3), name="base2")
     y_rv = at.concatenate((base1_rv, base2_rv), axis=0)
 
     with pytest.raises(
@@ -197,10 +206,12 @@ def test_join_mixed_ndim_supp():
 )
 @pytest.mark.parametrize("multivariate", (False, True))
 def test_measurable_dimshuffle(ds_order, multivariate):
+    srng = at.random.RandomStream(2023532)
+
     if multivariate:
-        base_rv = at.random.dirichlet([1, 2, 3], size=(2, 1))
+        base_rv = srng.dirichlet([1, 2, 3], size=(2, 1))
     else:
-        base_rv = at.exp(at.random.beta(1, 2, size=(2, 1, 3)))
+        base_rv = at.exp(srng.beta(1, 2, size=(2, 1, 3)))
 
     ds_rv = base_rv.dimshuffle(ds_order)
 
@@ -233,10 +244,11 @@ def test_measurable_dimshuffle(ds_order, multivariate):
 
 
 def test_unmeargeable_dimshuffles():
-    # Test that graphs with DimShuffles that cannot be lifted/merged fail
+    r"""Test that graphs with `DimShuffle`\s that cannot be lifted/merged fail."""
+    srng = at.random.RandomStream(2023532)
 
     # Initial support axis is at axis=-1
-    x = at.random.dirichlet(
+    x = srng.dirichlet(
         np.ones((3,)),
         size=(4, 2),
     )
