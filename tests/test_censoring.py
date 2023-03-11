@@ -12,7 +12,9 @@ from tests.utils import assert_no_rvs
 
 @aesara.config.change_flags(compute_test_value="raise")
 def test_continuous_rv_clip():
-    x_rv = at.random.normal(0.5, 1)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.normal(0.5, 1)
     cens_x_rv = at.clip(x_rv, -2, 2)
 
     logp, vv = joint_logprob(cens_x_rv)
@@ -30,7 +32,9 @@ def test_continuous_rv_clip():
 
 
 def test_discrete_rv_clip():
-    x_rv = at.random.poisson(2)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.poisson(2)
     cens_x_rv = at.clip(x_rv, 1, 4)
 
     logp, vv = joint_logprob(cens_x_rv)
@@ -48,7 +52,9 @@ def test_discrete_rv_clip():
 
 
 def test_one_sided_clip():
-    x_rv = at.random.normal(0, 1)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.normal(0, 1)
     lb_cens_x_rv = at.clip(x_rv, -1, x_rv)
     ub_cens_x_rv = at.clip(x_rv, x_rv, 1)
 
@@ -67,7 +73,9 @@ def test_one_sided_clip():
 
 
 def test_useless_clip():
-    x_rv = at.random.normal(0.5, 1, size=3)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.normal(0.5, 1, size=3)
     cens_x_rv = at.clip(x_rv, x_rv, x_rv)
 
     logps, (cens_x_vv,) = conditional_logprob(cens_x_rv)
@@ -81,8 +89,10 @@ def test_useless_clip():
 
 
 def test_random_clip():
-    lb_rv = at.random.normal(0, 1, size=2)
-    x_rv = at.random.normal(0, 2)
+    srng = at.random.RandomStream(0)
+
+    lb_rv = srng.normal(0, 1, size=2)
+    x_rv = srng.normal(0, 2)
     cens_x_rv = at.clip(x_rv, lb_rv, [1, 1])
 
     logps, (cens_x_vv, lb_vv) = conditional_logprob(cens_x_rv, lb_rv)
@@ -96,8 +106,10 @@ def test_random_clip():
 
 
 def test_broadcasted_clip_constant():
-    lb_rv = at.random.uniform(0, 1)
-    x_rv = at.random.normal(0, 2)
+    srng = at.random.RandomStream(0)
+
+    lb_rv = srng.uniform(0, 1)
+    x_rv = srng.normal(0, 2)
     cens_x_rv = at.clip(x_rv, lb_rv, [1, 1])
 
     logp, _ = joint_logprob(cens_x_rv, lb_rv)
@@ -105,8 +117,10 @@ def test_broadcasted_clip_constant():
 
 
 def test_broadcasted_clip_random():
-    lb_rv = at.random.normal(0, 1)
-    x_rv = at.random.normal(0, 2, size=2)
+    srng = at.random.RandomStream(0)
+
+    lb_rv = srng.normal(0, 1)
+    x_rv = srng.normal(0, 2, size=2)
     cens_x_rv = at.clip(x_rv, lb_rv, 1)
 
     logp, _ = joint_logprob(cens_x_rv, lb_rv)
@@ -115,7 +129,9 @@ def test_broadcasted_clip_random():
 
 def test_fail_multiple_clip_single_base():
     """Test failure when multiple values are assigned to the same clipped term."""
-    base_rv = at.random.normal(0, 1)
+    srng = at.random.RandomStream(0)
+
+    base_rv = srng.normal(0, 1)
     cens_rv1 = at.clip(base_rv, -1, 1)
     cens_rv1.name = "cens1"
     cens_rv2 = at.clip(base_rv, -1, 1)
@@ -126,9 +142,11 @@ def test_fail_multiple_clip_single_base():
 
 
 def test_deterministic_clipping():
-    x_rv = at.random.normal(0, 1)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.normal(0, 1)
     clip = at.clip(x_rv, 0, 0)
-    y_rv = at.random.normal(clip, 1)
+    y_rv = srng.normal(clip, 1)
 
     logp, (x_vv, y_vv) = joint_logprob(x_rv, y_rv)
     assert_no_rvs(logp)
@@ -141,7 +159,9 @@ def test_deterministic_clipping():
 
 
 def test_clip_transform():
-    x_rv = at.random.normal(0.5, 1)
+    srng = at.random.RandomStream(0)
+
+    x_rv = srng.normal(0.5, 1)
     cens_x_rv = at.clip(x_rv, 0, x_rv)
 
     transform = TransformValuesRewrite({cens_x_rv: LogTransform()})
@@ -180,11 +200,13 @@ def test_clip_transform():
     ),
 )
 def test_rounding(rounding_op, expected_logp_fn):
+    srng = at.random.RandomStream(0)
+
     loc = 1
     scale = 2
     test_value = np.arange(-3, 4)
 
-    x = at.random.normal(loc, scale, size=test_value.shape, name="x")
+    x = srng.normal(loc, scale, size=test_value.shape, name="x")
     xr = rounding_op(x)
     xr.name = "xr"
 
