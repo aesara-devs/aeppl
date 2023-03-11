@@ -390,7 +390,7 @@ def measurable_elemwise_logprob(
 def measurable_true_divide(fgraph, node):
     r"""Rewrite a `true_divide` node to a `MeasurableVariable`.
 
-    TODO FIXME: We need update/clarify the canonicalization situation so that
+    TODO FIXME: We need to update/clarify the canonicalization situation so that
     these can be reliably rewritten as products of reciprocals.
 
     """
@@ -413,8 +413,8 @@ def measurable_true_divide(fgraph, node):
 def measurable_sub(fgraph, node):
     r"""Rewrite a `sub` node to a `MeasurableVariable`.
 
-    TODO FIXME: We need update/clarify the canonicalization situation so that
-    these can be reliably rewritten as products of reciprocals.
+    TODO FIXME: We need to update/clarify the canonicalization situation so
+    that these can be reliably rewritten.
 
     """
     minuend, subtrahend = node.inputs
