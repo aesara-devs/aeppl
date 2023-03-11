@@ -380,7 +380,7 @@ class VariableWithShapePrinter(Printer):
                 try:
                     old_precedence = getattr(pstate, "precedence", None)
                     pstate.precedence = new_precedence
-                    _s_i_out = shape_feature.get_shape(output, i)
+                    _s_i_out = shape_feature.get_shape(pstate.fgraph, output, i)
 
                     if not isinstance(_s_i_out, (Constant, TensorVariable)):
                         s_i_out = pstate.pprinter.process(_s_i_out, pstate)
