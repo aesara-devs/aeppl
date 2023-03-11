@@ -74,15 +74,17 @@ def test_walk_model():
 
 
 def test_rvs_to_value_vars():
-    a = at.random.uniform(0.0, 1.0)
+    srng = at.random.RandomStream(seed=2320)
+
+    a = srng.uniform(0.0, 1.0)
     a.name = "a"
     a.tag.value_var = a_value_var = a.clone()
 
-    b = at.random.uniform(0, a + 1.0)
+    b = srng.uniform(0, a + 1.0)
     b.name = "b"
     b.tag.value_var = b_value_var = b.clone()
 
-    c = at.random.normal()
+    c = srng.normal()
     c.name = "c"
     c.tag.value_var = c_value_var = c.clone()
 
@@ -118,15 +120,17 @@ def test_rvs_to_value_vars():
 
 def test_rvs_to_value_vars_intermediate_rv():
     """Test that function replaces values above an intermediate RV."""
-    a = at.random.uniform(0.0, 1.0)
+    srng = at.random.RandomStream(seed=2320)
+
+    a = srng.uniform(0.0, 1.0)
     a.name = "a"
     a.tag.value_var = a_value_var = a.clone()
 
-    b = at.random.uniform(0, a + 1.0)
+    b = srng.uniform(0, a + 1.0)
     b.name = "b"
     b.tag.value_var = b.clone()
 
-    c = at.random.normal()
+    c = srng.normal()
     c.name = "c"
     c.tag.value_var = c_value_var = c.clone()
 
