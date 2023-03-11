@@ -1,6 +1,6 @@
 import warnings
 from copy import copy
-from typing import Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import aesara
 import aesara.tensor as at
@@ -13,6 +13,9 @@ from aesara.tensor.random.utils import broadcast_params, normalize_size_param
 from aesara.tensor.var import TensorVariable
 
 from aeppl.abstract import MeasurableVariable, _get_measurable_outputs
+
+if TYPE_CHECKING:
+    from aesara.tensor.random.utils import RandomStream
 
 
 class DiracDelta(Op):
@@ -190,6 +193,8 @@ def create_discrete_mc_op(srng, size, Gammas, gamma_0):
         # strict=True,
     )
 
+    # TODO FIXME: This is unreliable and needs to be replaced with explicit
+    # update support in `OpFromGraph`.
     update_outputs = [state_0.owner.inputs[0].default_update]
     update_outputs.extend(updates.values())
 
@@ -205,7 +210,11 @@ def create_discrete_mc_op(srng, size, Gammas, gamma_0):
 
 
 def discrete_markov_chain(
-    Gammas: TensorVariable, gamma_0: TensorVariable, size=None, srng=None, **kwargs
+    Gammas: TensorVariable,
+    gamma_0: TensorVariable,
+    size=None,
+    srng: Optional["RandomStream"] = None,
+    **kwargs
 ):
     """Construct a first-order discrete Markov chain distribution.
 
@@ -265,6 +274,8 @@ def discrete_markov_chain(
     dmc_op, updates = create_discrete_mc_op(srng, size, Gammas, gamma_0)
     rv_var = dmc_op(size, Gammas, gamma_0)
 
+    # TODO FIXME: This is unreliable and needs to be replaced with explicit
+    # update support in `OpFromGraph`.
     updates = {
         rv_var.owner.inputs[-2]: rv_var.owner.outputs[-2],
         rv_var.owner.inputs[-1]: rv_var.owner.outputs[-1],
