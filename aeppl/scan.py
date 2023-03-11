@@ -439,7 +439,8 @@ def update_scan_value_vars(
         # graph, so we use the shape feature to (hopefully) get the shape
         # without the entire `Scan` itself.
         full_out_shape = tuple(
-            fgraph.shape_feature.get_shape(full_out, i) for i in range(full_out.ndim)
+            fgraph.shape_feature.get_shape(fgraph, full_out, i)
+            for i in range(full_out.ndim)
         )
         new_val_var = at.empty(full_out_shape, dtype=full_out.dtype)
 
