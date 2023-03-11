@@ -173,7 +173,7 @@ def normal_logcdf(op, value, *inputs, **kwargs):
     z = (value - mu) / sigma
     res = at.switch(
         at.lt(z, -1.0),
-        at.log(at.erfcx(-z / at.sqrt(2.0)) / 2.0) - at.sqr(z) / 2.0,
+        at.log(at.erfcx(-z / at.sqrt(2.0)) / 2.0) - at.square(z) / 2.0,
         at.log1p(-at.erfc(z / at.sqrt(2.0)) / 2.0),
     )
 
