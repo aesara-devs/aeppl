@@ -10,6 +10,7 @@ import aesara.tensor as at
 from aesara.compile.function.types import Function
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.type import HasShape
 from aesara.printing import (
     OperatorPrinter,
     PatternPrinter,
@@ -603,7 +604,7 @@ pprint = PreamblePPrinter()
 pprint.printers.insert(
     0,
     (
-        lambda pstate, r: isinstance(r, Variable),
+        lambda pstate, r: isinstance(r, HasShape),
         VariableWithShapePrinter,
     ),
 )
