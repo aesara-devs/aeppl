@@ -100,7 +100,9 @@ def test_assign_custom_measurable_outputs():
 
 
 def test_valued_variable():
-    rv_var = at.random.normal(0, 1, size=3)
+    srng = at.random.RandomStream(seed=2320)
+
+    rv_var = srng.normal(0, 1, size=3)
     obs_var = valued_variable(
         rv_var, np.array([0.2, 0.1, -2.4], dtype=aesara.config.floatX)
     )
