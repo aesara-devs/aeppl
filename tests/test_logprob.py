@@ -102,12 +102,13 @@ def test_uniform_logprob(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.uniform(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.uniform(*dist_params_at, size=size_at)
 
     def scipy_logprob(obs, l, u):
         return stats.uniform.logpdf(obs, loc=l, scale=u - l)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -121,12 +122,13 @@ def test_uniform_logcdf(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.uniform(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.uniform(*dist_params_at, size=size_at)
 
     def scipy_logcdf(obs, l, u):
         return stats.uniform.logcdf(obs, loc=l, scale=u - l)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logcdf, test="logcdf")
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logcdf, test="logcdf")
 
 
 @pytest.mark.parametrize(
@@ -141,9 +143,10 @@ def test_normal_logprob(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.normal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.normal(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.norm.logpdf)
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=stats.norm.logpdf)
 
 
 @pytest.mark.parametrize(
@@ -158,9 +161,12 @@ def test_normal_logcdf(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.normal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.normal(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.norm.logcdf, test="logcdf")
+    scipy_logprob_tester(
+        X_rv, obs, dist_params, test_fn=stats.norm.logcdf, test="logcdf"
+    )
 
 
 @pytest.mark.parametrize(
@@ -175,9 +181,10 @@ def test_normal_icdf(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.normal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.normal(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.norm.ppf, test="icdf")
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=stats.norm.ppf, test="icdf")
 
 
 @pytest.mark.parametrize(
@@ -192,9 +199,10 @@ def test_halfnormal_logprob(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.halfnormal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.halfnormal(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.halfnorm.logpdf)
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=stats.halfnorm.logpdf)
 
 
 @pytest.mark.parametrize(
@@ -210,9 +218,10 @@ def test_beta_logprob(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.beta(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.beta(*dist_params_at, size=size_at)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=stats.beta.logpdf)
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=stats.beta.logpdf)
 
 
 @pytest.mark.parametrize(
@@ -228,7 +237,8 @@ def test_exponential_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.exponential(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.exponential(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -236,7 +246,7 @@ def test_exponential_logprob(dist_params, obs, size, error):
         return stats.expon.logpdf(obs, scale=mu)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -252,12 +262,13 @@ def test_laplace_logprob(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.laplace(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.laplace(*dist_params_at, size=size_at)
 
     def scipy_logprob(obs, mu, b):
         return stats.laplace.logpdf(obs, loc=mu, scale=b)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -273,7 +284,8 @@ def test_lognormal_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.lognormal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.lognormal(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -281,7 +293,7 @@ def test_lognormal_logprob(dist_params, obs, size, error):
         return stats.lognorm.logpdf(obs, s=sigma, scale=np.exp(mu))
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -297,7 +309,8 @@ def test_pareto_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.pareto(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.pareto(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -305,7 +318,7 @@ def test_pareto_logprob(dist_params, obs, size, error):
         return stats.pareto.logpdf(obs, b, scale=scale)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -321,7 +334,8 @@ def test_halfcauchy_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.halfcauchy(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.halfcauchy(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -329,7 +343,7 @@ def test_halfcauchy_logprob(dist_params, obs, size, error):
         return stats.halfcauchy.logpdf(obs, loc=alpha, scale=beta)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -345,7 +359,8 @@ def test_gamma_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.gamma(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.gamma(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -353,7 +368,7 @@ def test_gamma_logprob(dist_params, obs, size, error):
         return stats.gamma.logpdf(obs, alpha, scale=1.0 / inv_beta)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -369,7 +384,8 @@ def test_invgamma_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.invgamma(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.invgamma(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -377,7 +393,7 @@ def test_invgamma_logprob(dist_params, obs, size, error):
         return stats.invgamma.logpdf(obs, alpha, scale=beta)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -395,7 +411,8 @@ def test_chisquare_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.chisquare(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.chisquare(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -403,7 +420,7 @@ def test_chisquare_logprob(dist_params, obs, size, error):
         return stats.chi2.logpdf(obs, df)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -419,7 +436,8 @@ def test_wald_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.wald(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.wald(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -427,7 +445,7 @@ def test_wald_logprob(dist_params, obs, size, error):
         return stats.invgauss.logpdf(obs, mean / scale, scale=scale)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -443,7 +461,8 @@ def test_weibull_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.weibull(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.weibull(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -451,7 +470,7 @@ def test_weibull_logprob(dist_params, obs, size, error):
         return stats.weibull_min.logpdf(obs, c)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -487,7 +506,8 @@ def test_vonmises_logprob(dist_params, obs, size, param_error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.vonmises(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.vonmises(*dist_params_at, size=size_at)
 
     param_cm = (
         contextlib.suppress() if not param_error else pytest.raises(ParameterValueError)
@@ -504,7 +524,7 @@ def test_vonmises_logprob(dist_params, obs, size, param_error):
         return stats.vonmises.logpdf(obs, kappa, loc=mu)
 
     with config.change_flags(on_opt_error="warn"), param_cm, i0_cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -525,7 +545,8 @@ def test_triangular_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.triangular(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.triangular(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -535,7 +556,7 @@ def test_triangular_logprob(dist_params, obs, size, error):
         )
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -551,7 +572,8 @@ def test_gumbel_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.gumbel(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.gumbel(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -559,7 +581,7 @@ def test_gumbel_logprob(dist_params, obs, size, error):
         return stats.gumbel_r.logpdf(obs, loc=mu, scale=beta)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -575,7 +597,8 @@ def test_logistic_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.logistic(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.logistic(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -583,7 +606,7 @@ def test_logistic_logprob(dist_params, obs, size, error):
         return stats.logistic.logpdf(obs, loc=mu, scale=s)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -605,7 +628,8 @@ def test_binomial_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.binomial(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.binomial(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -613,7 +637,7 @@ def test_binomial_logprob(dist_params, obs, size, error):
         return stats.binom.logpmf(obs, n, p)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -634,7 +658,8 @@ def test_betabinomial_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.betabinom(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.betabinom(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -642,7 +667,7 @@ def test_betabinomial_logprob(dist_params, obs, size, error):
         return stats.betabinom.logpmf(obs, n, alpha, beta)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -658,7 +683,8 @@ def test_bernoulli_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.bernoulli(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.bernoulli(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -666,7 +692,7 @@ def test_bernoulli_logprob(dist_params, obs, size, error):
         return stats.bernoulli.logpmf(obs, p)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -687,7 +713,8 @@ def test_poisson_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.poisson(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.poisson(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -695,7 +722,7 @@ def test_poisson_logprob(dist_params, obs, size, error):
         return stats.poisson.logpmf(obs, mu)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -716,7 +743,8 @@ def test_poisson_logcdf(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.poisson(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.poisson(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -724,7 +752,9 @@ def test_poisson_logcdf(dist_params, obs, size, error):
         return stats.poisson.logcdf(obs, mu)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logcdf, test="logcdf")
+        scipy_logprob_tester(
+            X_rv, obs, dist_params, test_fn=scipy_logcdf, test="logcdf"
+        )
 
 
 @pytest.mark.parametrize(
@@ -751,7 +781,8 @@ def test_nbinom_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.nbinom(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.nbinom(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -759,7 +790,7 @@ def test_nbinom_logprob(dist_params, obs, size, error):
         return stats.nbinom.logpmf(obs, n, p)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -780,7 +811,8 @@ def test_geometric_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.geometric(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.geometric(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -788,7 +820,7 @@ def test_geometric_logprob(dist_params, obs, size, error):
         return stats.geom.logpmf(obs, p)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -809,13 +841,14 @@ def test_geometric_logcdf(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.geometric(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.geometric(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
     with cm:
         scipy_logprob_tester(
-            x, obs, dist_params, test_fn=stats.geom.logcdf, test="logcdf"
+            X_rv, obs, dist_params, test_fn=stats.geom.logcdf, test="logcdf"
         )
 
 
@@ -835,13 +868,14 @@ def test_geometric_icdf(dist_params, obs, size):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.geometric(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.geometric(*dist_params_at, size=size_at)
 
     def scipy_geom_icdf(value, p):
         # Scipy ppf returns floats
         return stats.geom.ppf(value, p).astype(np.int64)
 
-    scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_geom_icdf, test="icdf")
+    scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_geom_icdf, test="icdf")
 
 
 @pytest.mark.parametrize(
@@ -862,7 +896,8 @@ def test_hypergeometric_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.hypergeometric(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.hypergeometric(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(AssertionError)
 
@@ -873,7 +908,7 @@ def test_hypergeometric_logprob(dist_params, obs, size, error):
         return stats.hypergeom.logpmf(obs, M, n, N)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -893,7 +928,8 @@ def test_studentt_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.t(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.t(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(AssertionError)
 
@@ -901,7 +937,7 @@ def test_studentt_logprob(dist_params, obs, size, error):
         return stats.t.logpdf(obs, df, loc=loc, scale=scale)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -983,13 +1019,14 @@ def test_categorical_logprob(dist_params, obs, size, exc_type, chk_bcast):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.categorical(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.categorical(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not exc_type else pytest.raises(exc_type)
 
     with cm:
         scipy_logprob_tester(
-            x, obs, dist_params, test_fn=scipy_logprob, check_broadcastable=chk_bcast
+            X_rv, obs, dist_params, test_fn=scipy_logprob, check_broadcastable=chk_bcast
         )
 
 
@@ -1027,7 +1064,8 @@ def test_mvnormal_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.multivariate_normal(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.multivariate_normal(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -1035,7 +1073,7 @@ def test_mvnormal_logprob(dist_params, obs, size, error):
         return stats.multivariate_normal.logpdf(obs, mu, cov)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -1059,7 +1097,8 @@ def test_dirichlet_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.dirichlet(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.dirichlet(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -1067,7 +1106,7 @@ def test_dirichlet_logprob(dist_params, obs, size, error):
         return stats.dirichlet.logpdf(obs.T, alpha)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
 @pytest.mark.parametrize(
@@ -1091,7 +1130,8 @@ def test_multinomial_logprob(dist_params, obs, size, error):
     dist_params_at, obs_at, size_at = create_aesara_params(dist_params, obs, size)
     dist_params = dict(zip(dist_params_at, dist_params))
 
-    x = at.random.multinomial(*dist_params_at, size=size_at)
+    srng = at.random.RandomStream(1234)
+    X_rv = srng.multinomial(*dist_params_at, size=size_at)
 
     cm = contextlib.suppress() if not error else pytest.raises(ParameterValueError)
 
@@ -1099,15 +1139,17 @@ def test_multinomial_logprob(dist_params, obs, size, error):
         return stats.multinomial.logpmf(obs, n, p)
 
     with cm:
-        scipy_logprob_tester(x, obs, dist_params, test_fn=scipy_logprob)
+        scipy_logprob_tester(X_rv, obs, dist_params, test_fn=scipy_logprob)
 
 
-def test_CheckParameter():
+def test_ParameterValueError():
+    srng = at.random.RandomStream(1234)
+
     mu = at.constant(0)
     sigma = at.scalar("sigma")
-    x_rv = at.random.normal(mu, sigma, name="x")
+    X_rv = srng.normal(mu, sigma, name="x")
     x_vv = at.constant(0)
-    x_logp = logprob(x_rv, x_vv)
+    x_logp = logprob(X_rv, x_vv)
 
     x_logp_fn = function([sigma], x_logp)
     with pytest.raises(ParameterValueError, match="sigma > 0"):
