@@ -259,7 +259,9 @@ def mixture_replace(fgraph, node):
 
     mixture_res, join_axis = get_stack_mixture_vars(node)
 
-    if mixture_res is None or any(isinstance(rv, ValuedVariable) for rv in mixture_res):
+    if mixture_res is None or any(
+        rv.owner and isinstance(rv.owner.op, ValuedVariable) for rv in mixture_res
+    ):
         return None  # pragma: no cover
 
     mixing_indices = node.inputs[1:]
@@ -314,7 +316,7 @@ def switch_mixture_replace(fgraph, node):
         if not (
             component_rv.owner
             and isinstance(component_rv.owner.op, MeasurableVariable)
-            and not isinstance(component_rv, ValuedVariable)
+            and not isinstance(component_rv.owner.op, ValuedVariable)
         ):
             return None
         new_node = assign_custom_measurable_outputs(component_rv.owner)

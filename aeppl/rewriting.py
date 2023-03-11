@@ -137,7 +137,7 @@ def incsubtensor_rv_replace(fgraph, node):
     if not (
         base_rv_var.owner
         and isinstance(base_rv_var.owner.op, MeasurableVariable)
-        and not isinstance(base_rv_var, ValuedVariable)
+        and not isinstance(base_rv_var.owner.op, ValuedVariable)
     ):
         return None  # pragma: no cover
 

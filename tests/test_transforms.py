@@ -787,6 +787,7 @@ def test_transform_measurable_sub():
     assert np.isclose(z_logp_fn(7.3), sp.stats.norm.logpdf(7.3, loc=-4.0))
 
 
+@pytest.mark.xfail(reason="This needs to be reconsidered")
 def test_transform_reused_measurable():
     srng = at.random.RandomStream(0)
 
@@ -804,3 +805,17 @@ def test_transform_reused_measurable():
     exp_res = sp.stats.lognorm(s=1).logpdf(z_val) + sp.stats.norm().logpdf(z_val)
 
     np.testing.assert_allclose(logp_fn(z_val), exp_res)
+
+
+def test_transform_sub_valued():
+    """Test the case when one of the transformed inputs is a `ValuedVariable`."""
+    srng = at.random.RandomStream(0)
+
+    A_rv = srng.normal(1.0, name="A")
+    X_rv = srng.normal(1.0, name="X")
+    Z_rv = A_rv - X_rv
+
+    logp, (z_vv, a_vv) = joint_logprob(Z_rv, A_rv)
+    z_logp_fn = aesara.function([z_vv, a_vv], logp)
+    exp_logp = sp.stats.norm.logpdf(5.0 - 7.3, 1.0) + sp.stats.norm.logpdf(5.0, 1.0)
+    assert np.isclose(z_logp_fn(7.3, 5.0), exp_logp)

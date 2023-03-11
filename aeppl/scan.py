@@ -379,7 +379,7 @@ def update_scan_value_vars(
 
     """
 
-    # if not any(isinstance(out, ValuedVariable) for out in node.outputs):
+    # if not any(isinstance(out.owner.op, ValuedVariable) for out in node.outputs):
     #     return new_node.outputs
 
     # Get any `Subtensor` outputs that have been applied to outputs of this
