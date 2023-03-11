@@ -38,7 +38,7 @@ setup(
     install_requires=[
         "numpy>=1.18.1",
         "scipy>=1.4.0",
-        "aesara>=2.8.11",
+        "aesara>=2.8.13",
         "typing_extensions",
     ],
     tests_require=["pytest"],
