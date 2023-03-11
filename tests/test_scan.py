@@ -33,11 +33,7 @@ def test_convert_outer_out_to_in_sit_sot():
 
     This should be a single SIT-SOT replacement.
     """
-
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-    rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    srng = at.random.RandomStream(1234)
 
     #
     # We create a `Scan` representing a time-series model with normally
@@ -45,12 +41,12 @@ def test_convert_outer_out_to_in_sit_sot():
     # response `RandomVariable` and a lagged "deterministic" that also depends
     # on the lagged response values.
     #
-    def input_step_fn(mu_tm1, y_tm1, rng):
+    def input_step_fn(mu_tm1, y_tm1):
         mu_tm1.name = "mu_tm1"
         y_tm1.name = "y_tm1"
         mu = mu_tm1 + y_tm1 + 1
         mu.name = "mu_t"
-        return mu, at.random.normal(mu, 1.0, rng=rng, name="Y_t")
+        return mu, srng.normal(mu, 1.0, name="Y_t")
 
     (mu_tt, Y_rv), _ = aesara.scan(
         fn=input_step_fn,
@@ -64,7 +60,6 @@ def test_convert_outer_out_to_in_sit_sot():
                 "taps": [-1],
             },
         ],
-        non_sequences=[rng_tt],
         n_steps=10,
     )
 
@@ -91,7 +86,7 @@ def test_convert_outer_out_to_in_sit_sot():
         y_tm1.name = "y_tm1"
         mu = mu_tm1 + y_tm1 + 1
         mu.name = "mu_t"
-        logp = logprob(at.random.normal(mu, 1.0), y_t)
+        logp = logprob(srng.normal(mu, 1.0), y_t)
         logp.name = "logp"
         return mu, logp
 
@@ -147,27 +142,22 @@ def test_convert_outer_out_to_in_mit_sot():
 
     This should be a single MIT-SOT replacement.
     """
-
-    rng_state = np.random.default_rng(1234)
-    rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    srng = at.random.RandomStream(1234)
 
     #
     # This is a very simple model with only one output, but multiple
     # taps/lags.
     #
-    def input_step_fn(y_tm1, y_tm2, rng):
+    def input_step_fn(y_tm1, y_tm2):
         y_tm1.name = "y_tm1"
         y_tm2.name = "y_tm2"
-        return at.random.normal(y_tm1 + y_tm2, 1.0, rng=rng, name="Y_t")
+        return srng.normal(y_tm1 + y_tm2, 1.0, name="Y_t")
 
     Y_rv, _ = aesara.scan(
         fn=input_step_fn,
         outputs_info=[
             {"initial": at.as_tensor_variable(np.r_[-1.0, 0.0]), "taps": [-1, -2]},
         ],
-        non_sequences=[rng_tt],
         n_steps=10,
     )
 
@@ -190,7 +180,7 @@ def test_convert_outer_out_to_in_mit_sot():
         y_t.name = "y_t"
         y_tm1.name = "y_tm1"
         y_tm2.name = "y_tm2"
-        logp = logprob(at.random.normal(y_tm1 + y_tm2, 1.0), y_t)
+        logp = logprob(srng.normal(y_tm1 + y_tm2, 1.0), y_t)
         logp.name = "logp(y_t)"
         return logp
 
@@ -303,8 +293,8 @@ def test_scan_joint_logprob(require_inner_rewrites):
     # Construct the joint log-probability by hand so we can compare it with
     # `y_logp`
     def scan_fn(mus_t, sigma_t, Y_t_val, S_t_val, Gamma_t):
-        S_t = at.random.categorical(Gamma_t[0], name="S_t")
-        Y_t = at.random.normal(mus_t[S_t_val], sigma_t, name="Y_t")
+        S_t = srng.categorical(Gamma_t[0], name="S_t")
+        Y_t = srng.normal(mus_t[S_t_val], sigma_t, name="Y_t")
         Y_t_logp, S_t_logp = logprob(Y_t, Y_t_val), logprob(S_t, S_t_val)
         Y_t_logp.name = "log(Y_t=y_t)"
         S_t_logp.name = "log(S_t=s_t)"
@@ -382,9 +372,11 @@ def test_initial_values():
 
 @pytest.mark.parametrize("remove_asserts", (True, False))
 def test_mode_is_kept(remove_asserts):
+    srng = at.random.RandomStream(1234)
+
     mode = Mode().including("local_remove_all_assert") if remove_asserts else None
     x, _ = aesara.scan(
-        fn=lambda x: at.random.normal(assert_op(x, x > 0)),
+        fn=lambda x: srng.normal(assert_op(x, x > 0)),
         outputs_info=[at.ones(())],
         n_steps=10,
         mode=mode,
