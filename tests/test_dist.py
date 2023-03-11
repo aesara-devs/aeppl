@@ -1,6 +1,5 @@
 import aesara
 import aesara.tensor as at
-import aesara.tensor.random as atr
 import numpy as np
 import pytest
 import scipy.stats as sp
@@ -499,14 +498,12 @@ def test_switching_process_random():
     assert np.array_equal(test_sample.shape, (3,) + test_mus.shape)
     assert np.all(test_sample.sum(0)[..., test_states > 0] > 0)
 
-    # Some misc. tests
-    rng = aesara.shared(np.random.RandomState(2023532), borrow=True)
-
+    srng = at.random.RandomStream(2023532)
     test_states = np.r_[2, 0, 1, 2, 0, 1]
     test_dists = [
         at.as_tensor(0),
-        atr.poisson(100.0, rng=rng),
-        atr.poisson(1000.0, rng=rng),
+        srng.poisson(100.0),
+        srng.poisson(1000.0),
     ]
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
@@ -518,12 +515,13 @@ def test_switching_process_random():
     assert np.all(test_sample[test_states == 1] < 1000)
     assert np.all(100 < test_sample[test_states == 2])
 
+    srng = at.random.RandomStream(2023532)
     test_states = np.r_[2, 0, 1, 2, 0, 1]
     test_mus = np.r_[100, 100, 500, 100, 100, 100]
     test_dists = [
         at.as_tensor(0),
-        atr.poisson(test_mus, rng=rng),
-        atr.poisson(10000.0, rng=rng),
+        srng.poisson(test_mus),
+        srng.poisson(10000.0),
     ]
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
@@ -535,11 +533,12 @@ def test_switching_process_random():
     assert np.all(5000 < test_sample[test_states == 2])
 
     # Try a continuous mixture
+    srng = at.random.RandomStream(2023532)
     test_states = np.r_[2, 0, 1, 2, 0, 1]
     test_dists = [
-        atr.normal(0.0, 1.0, rng=rng),
-        atr.normal(100.0, 1.0, rng=rng),
-        atr.normal(1000.0, 1.0, rng=rng),
+        srng.normal(0.0, 1.0),
+        srng.normal(100.0, 1.0),
+        srng.normal(1000.0, 1.0),
     ]
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
@@ -557,8 +556,9 @@ def test_switching_process_random():
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
 
+    srng = at.random.RandomStream(2023532)
     test_states = np.r_[2, 0, 1, 2, 0, 1]
-    test_dists = [atr.poisson(0.0), atr.poisson(100.0), atr.poisson(1000.0)]
+    test_dists = [srng.poisson(0.0), srng.poisson(100.0), srng.poisson(1000.0)]
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
 
@@ -569,11 +569,12 @@ def test_switching_process_random():
     assert np.all(test_sample[test_states == 1] < 1000)
     assert np.all(100 < test_sample[test_states == 2])
 
+    srng = at.random.RandomStream(2023532)
     test_mus = np.r_[100, 100, 500, 100, 100, 100]
     test_dists = [
         dirac_delta(at.as_tensor(0)),
-        atr.poisson(test_mus),
-        atr.poisson(10000.0),
+        srng.poisson(test_mus),
+        srng.poisson(10000.0),
     ]
     test_dist = switching_process(test_dists, test_states)
     assert np.array_equal(test_dist.shape.eval(), test_states.shape)
@@ -586,7 +587,7 @@ def test_switching_process_random():
 
 
 def test_switching_process_logp():
-    srng = atr.RandomStream(2023532)
+    srng = at.random.RandomStream(2023532)
 
     states_rv = srng.categorical([1 / 3, 1 / 3, 1 / 3], size=6, name="states")
     states_vv = states_rv.clone()
@@ -652,7 +653,7 @@ def test_switching_process_logp():
 
 
 def test_poisson_zero_process_model():
-    srng = atr.RandomStream(seed=2023532)
+    srng = at.random.RandomStream(seed=2023532)
 
     test_mean = at.repeat(at.as_tensor(1000.0), 20)
     states = srng.bernoulli(0.5, size=20, name="states")
