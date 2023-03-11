@@ -21,8 +21,10 @@ from tests.utils import assert_no_rvs
 
 
 def test_joint_logprob_basic():
-    # A simple check for when `joint_logprob` is the same as `logprob`
-    a = at.random.uniform(0.0, 1.0)
+    """Check for when `joint_logprob` is the same as `logprob`."""
+    srng = at.random.RandomStream(2023532)
+
+    a = srng.uniform(0.0, 1.0)
     a.name = "a"
 
     logps, (a_vv,) = conditional_logprob(a)
@@ -32,8 +34,8 @@ def test_joint_logprob_basic():
     assert equal_computations([a_logp], [a_logp_exp])
 
     # Let's try a hierarchical model
-    sigma = at.random.invgamma(0.5, 0.5)
-    Y = at.random.normal(0.0, sigma)
+    sigma = srng.invgamma(0.5, 0.5)
+    Y = srng.normal(0.0, sigma)
 
     lls, (Y_vv, sigma_vv) = conditional_logprob(Y, sigma)
     total_ll = lls[sigma] + lls[Y]
@@ -51,10 +53,10 @@ def test_joint_logprob_basic():
 
     # Now, make sure we can compute a joint log-probability for a hierarchical
     # model with some non-`RandomVariable` nodes
-    c = at.random.normal()
+    c = srng.normal()
     c.name = "c"
     b_l = c * a + 2.0
-    b = at.random.uniform(b_l, b_l + 1.0)
+    b = srng.uniform(b_l, b_l + 1.0)
     b.name = "b"
 
     b_logp, (a_vv, b_vv, c_vv) = joint_logprob(a, b, c)
@@ -69,8 +71,10 @@ def test_joint_logprob_basic():
 
 
 def test_joint_logprob_multi_obs():
-    a = at.random.uniform(0.0, 1.0)
-    b = at.random.normal(0.0, 1.0)
+    srng = at.random.RandomStream(2023532)
+
+    a = srng.uniform(0.0, 1.0)
+    b = srng.normal(0.0, 1.0)
 
     logps, (a_vv, b_vv) = conditional_logprob(a, b)
     logp = logps[a] + logps[b]
@@ -78,8 +82,8 @@ def test_joint_logprob_multi_obs():
 
     assert equal_computations([logp], [logp_exp])
 
-    x = at.random.normal(0, 1)
-    y = at.random.normal(x, 1)
+    x = srng.normal(0, 1)
+    y = srng.normal(x, 1)
 
     exp_logp, (x_vv, y_vv) = joint_logprob(x, y)
     logp, _ = joint_logprob(realized={x: x_vv, y: y_vv})
@@ -88,9 +92,11 @@ def test_joint_logprob_multi_obs():
 
 
 def test_joint_logprob_diff_dims():
+    srng = at.random.RandomStream(2023532)
+
     M = at.matrix("M")
-    x = at.random.normal(0, 1, size=M.shape[1], name="X")
-    y = at.random.normal(M.dot(x), 1, name="Y")
+    x = srng.normal(0, 1, size=M.shape[1], name="X")
+    y = srng.normal(M.dot(x), 1, name="Y")
 
     logp, (x_vv, y_vv) = joint_logprob(x, y)
 
@@ -126,7 +132,9 @@ def test_joint_logprob_incsubtensor(indices, size):
     data = rng.normal(mu[indices], 1.0)
     y_val = rng.normal(mu, sigma, size=size)
 
-    Y_base_rv = at.random.normal(mu, sigma, size=size)
+    srng = at.random.RandomStream(2023532)
+
+    Y_base_rv = srng.normal(mu, sigma, size=size)
     Y_rv = at.set_subtensor(Y_base_rv[indices], data)
     Y_rv.name = "Y"
 
@@ -150,8 +158,9 @@ def test_incsubtensor_original_values_output_dict():
     Test that the original un-incsubtensor value variable appears an the key of
     the logprob factor
     """
+    srng = at.random.RandomStream(2023532)
 
-    base_rv = at.random.normal(0, 1, size=2)
+    base_rv = srng.normal(0, 1, size=2)
     rv = at.set_subtensor(base_rv[0], 5)
 
     logp_dict, _ = conditional_logprob(rv)
@@ -160,20 +169,19 @@ def test_incsubtensor_original_values_output_dict():
 
 def test_joint_logprob_subtensor():
     """Make sure we can compute a joint log-probability for ``Y[I]`` where ``Y`` and ``I`` are random variables."""
-
     size = 5
 
     mu_base = np.power(10, np.arange(np.prod(size))).reshape(size)
     mu = np.stack([mu_base, -mu_base])
     sigma = 0.001
-    rng = aesara.shared(np.random.RandomState(232), borrow=True)
 
-    A_rv = at.random.normal(mu, sigma, rng=rng)
+    srng = at.random.RandomStream(232)
+    A_rv = srng.normal(mu, sigma)
     A_rv.name = "A"
 
     p = 0.5
 
-    I_rv = at.random.bernoulli(p, size=size, rng=rng)
+    I_rv = srng.bernoulli(p, size=size)
     I_rv.name = "I"
 
     A_idx = A_rv[I_rv, at.ogrid[A_rv.shape[-1] :]]
@@ -219,9 +227,11 @@ def test_persist_inputs():
     and related functions.
 
     """
+    srng = at.random.RandomStream(2023532)
+
     x = at.scalar("x")
-    beta_rv = at.random.normal(0, 1, name="beta")
-    Y_rv = at.random.normal(beta_rv * x, 1, name="y")
+    beta_rv = srng.normal(0, 1, name="beta")
+    Y_rv = srng.normal(beta_rv * x, 1, name="y")
 
     logp, (beta_vv, y_vv) = joint_logprob(beta_rv, Y_rv)
 
@@ -245,9 +255,10 @@ def test_persist_inputs():
 
 def test_random_in_logprob():
     """Make sure we can have `RandomVariable`s in log-probabilities."""
+    srng = at.random.RandomStream(2023532)
 
-    x_rv = at.random.normal(name="x")
-    y_rv = at.random.normal(x_rv, 1, name="y")
+    x_rv = srng.normal(name="x")
+    y_rv = srng.normal(x_rv, 1, name="y")
 
     logps, vvars = conditional_logprob(y_rv)
 
@@ -261,8 +272,10 @@ def test_random_in_logprob():
 
 def test_multiple_rvs_with_same_value():
     """Make sure we can use the same value for two different measurable terms."""
-    x_rv1 = at.random.normal(name="x1")
-    x_rv2 = at.random.normal(name="x2")
+    srng = at.random.RandomStream(2023532)
+
+    x_rv1 = srng.normal(name="x1")
+    x_rv2 = srng.normal(name="x2")
     x = x_rv1.clone()
     x.name = "x"
 
@@ -273,7 +286,9 @@ def test_multiple_rvs_with_same_value():
 
 
 def test_deprecations():
-    X = at.random.normal(name="X")
+    srng = at.random.RandomStream(2023532)
+
+    X = srng.normal(name="X")
     x = X.clone()
     x.name = "x"
 
