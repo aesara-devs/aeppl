@@ -24,7 +24,7 @@ def test_PreamblPPrinter():
     (b * a)
     """
     )
-    assert pprint(y_fn) == expected.strip()
+    assert pprint(y_fn).strip() == expected.strip()
 
 
 def test_notex_print():
