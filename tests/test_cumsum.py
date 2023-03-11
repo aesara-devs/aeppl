@@ -21,7 +21,9 @@ from tests.utils import assert_no_rvs
     ],
 )
 def test_normal_cumsum(size, axis):
-    rv = at.random.normal(0, 1, size=size).cumsum(axis)
+    srng = at.random.RandomStream(2023532)
+
+    rv = srng.normal(0, 1, size=size).cumsum(axis)
     logp, (vv,) = joint_logprob(rv)
     assert_no_rvs(logp)
 
@@ -44,7 +46,9 @@ def test_normal_cumsum(size, axis):
     ],
 )
 def test_bernoulli_cumsum(size, axis):
-    rv = at.random.bernoulli(0.9, size=size).cumsum(axis)
+    srng = at.random.RandomStream(2023532)
+
+    rv = srng.bernoulli(0.9, size=size).cumsum(axis)
     logp, (vv,) = joint_logprob(rv)
     assert_no_rvs(logp)
 
@@ -56,16 +60,20 @@ def test_bernoulli_cumsum(size, axis):
 
 def test_destructive_cumsum_fails():
     """Test that a cumsum that mixes dimensions fails"""
-    x_rv = at.random.normal(size=(2, 2, 2)).cumsum()
+    srng = at.random.RandomStream(2023532)
+
+    x_rv = srng.normal(size=(2, 2, 2)).cumsum()
     with pytest.raises(DensityNotFound):
         joint_logprob(x_rv)
 
 
 def test_deterministic_cumsum():
     """Test that deterministic cumsum is not affected"""
-    x_rv = at.random.normal(1, 1, size=5)
+    srng = at.random.RandomStream(2023532)
+
+    x_rv = srng.normal(1, 1, size=5)
     cumsum_x_rv = at.cumsum(x_rv)
-    y_rv = at.random.normal(cumsum_x_rv, 1)
+    y_rv = srng.normal(cumsum_x_rv, 1)
 
     logp, (x_vv, y_vv) = joint_logprob(x_rv, y_rv)
     assert_no_rvs(logp)
