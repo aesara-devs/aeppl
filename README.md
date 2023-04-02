@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./docs/source/_static/aeppl_logo.png" alt="AePPL Logo" width=400></img>
+
 # AePPL
 
 [![Pypi][pypi-badge]][pypi]
