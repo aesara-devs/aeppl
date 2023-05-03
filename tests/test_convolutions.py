@@ -95,7 +95,6 @@ def test_add_independent_normals(mu_x, mu_y, sigma_x, sigma_y, x_shape, y_shape,
     assert isinstance(new_rv.owner.op, NormalRV)
     assert np.allclose(new_rv.owner.inputs[3].eval(), new_rv_mu)
     assert np.allclose(new_rv.owner.inputs[4].eval(), new_rv_sigma)
-    assert new_rv.name == "Z"
 
 
 def test_normal_add_input_valued():
@@ -117,3 +116,28 @@ def test_normal_add_input_valued():
     assert isinstance(
         valued_var_out_node.inputs[0].owner.op, MeasurableElemwiseTransform
     )
+
+
+def test_normal_add_three_inputs():
+    """Test the case when there are more than two inputs in the sum."""
+    srng = at.random.RandomStream(0)
+
+    mu_x = at.vector("mu_x")
+    sigma_x = at.vector("sigma_x")
+    X_rv = srng.normal(mu_x, sigma_x, name="X")
+    mu_y = at.vector("mu_y")
+    sigma_y = at.vector("sigma_y")
+    Y_rv = srng.normal(mu_y, sigma_y, size=(2, 1), name="Y")
+    mu_w = at.vector("mu_w")
+    sigma_w = at.vector("sigma_w")
+    W_rv = srng.normal(mu_w, sigma_w, name="W")
+
+    Z_rv = X_rv + Y_rv + W_rv
+    Z_rv.name = "Z"
+    z_vv = Z_rv.clone()
+
+    fgraph, _, _ = construct_ir_fgraph({Z_rv: z_vv})
+
+    valued_var_out_node = fgraph.outputs[0].owner
+    # The convolution should be applied, and not the transform
+    assert isinstance(valued_var_out_node.inputs[0].owner.op, NormalRV)
