@@ -685,7 +685,7 @@ def test_switch_mixture():
     z_vv = Z1_rv.clone()
     z_vv.name = "z1"
 
-    fgraph, _, _ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
+    fgraph, *_ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
 
     out_rv = fgraph.outputs[0].owner.inputs[0]
     assert isinstance(out_rv.owner.op, MixtureRV)
@@ -696,7 +696,7 @@ def test_switch_mixture():
 
     Z1_rv.name = "Z1"
 
-    fgraph, _, _ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
+    fgraph, *_ = construct_ir_fgraph({Z1_rv: z_vv, I_rv: i_vv})
 
     out_rv = fgraph.outputs[0].owner.inputs[0]
     assert out_rv.name == "Z1-mixture"
@@ -705,7 +705,7 @@ def test_switch_mixture():
 
     Z2_rv = at.stack((X_rv, Y_rv))[I_rv]
 
-    fgraph2, _, _ = construct_ir_fgraph({Z2_rv: z_vv, I_rv: i_vv})
+    fgraph2, *_ = construct_ir_fgraph({Z2_rv: z_vv, I_rv: i_vv})
 
     assert equal_computations(fgraph.outputs, fgraph2.outputs)
 

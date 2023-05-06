@@ -161,13 +161,9 @@ def transform_values(fgraph: FunctionGraph, node: Apply):
     4. Replace the old `ValuedVariable` with a new one containing a
     `TransformedVariable` value.
 
-    Step 3. is currently accomplished by updating the `memo` dictionary
-    associated with the `FunctionGraph`.  Our main entry-point,
+    Step 3. is currently accomplished by updating the `rvs_to_values`
+    dictionary associated with the `FunctionGraph`.  Our main entry-point,
     `conditional_logprob`, checks this dictionary for value variable changes.
-
-    TODO: This approach is less than ideal, because it puts awkward demands on
-    users/callers of this rewrite to check with `memo`; let's see if we can do
-    something better.
 
     The new value variable mentioned in Step 2. may be of a different `Type`
     (e.g. extra/fewer dimensions) than the original value variable; this is why
@@ -235,8 +231,8 @@ def transform_values(fgraph: FunctionGraph, node: Apply):
 
     # This effectively lets the caller know that a value variable has been
     # replaced (i.e. they should filter all their old value variables through
-    # the memo/replacements map).
-    fgraph.memo[value_var] = trans_value_var
+    # the replacements map).
+    fgraph.value_clone_to_value[value_var] = trans_value_var
 
     trans_var = trans_node.outputs[rv_var_out_idx]
     new_var = valued_variable(trans_var, untrans_value_var)
@@ -252,7 +248,7 @@ class TransformValuesMapping(Feature):
 
     """
 
-    def __init__(self, values_to_transforms, memo):
+    def __init__(self, values_to_transforms, value_clone_to_value):
         """
         Parameters
         ==========
@@ -261,20 +257,19 @@ class TransformValuesMapping(Feature):
             value variable can be assigned one of `RVTransform`,
             `DEFAULT_TRANSFORM`, or ``None``. Random variables with no
             transform specified remain unchanged.
-        memo
-            Mapping from variables to their clones.  This is updated
-            in-place whenever a value variable is transformed.
-
+        value_clone_to_value
+            Mapping between random variable value clones and their original
+            value variables.
         """
         self.values_to_transforms = values_to_transforms
-        self.memo = memo
+        self.value_clone_to_value = value_clone_to_value
 
     def on_attach(self, fgraph):
         if hasattr(fgraph, "values_to_transforms"):
             raise AlreadyThere()
 
         fgraph.values_to_transforms = self.values_to_transforms
-        fgraph.memo = self.memo
+        fgraph.value_clone_to_value = self.value_clone_to_value
 
 
 class TransformValuesRewrite(GraphRewriter):
@@ -322,6 +317,7 @@ class TransformValuesRewrite(GraphRewriter):
             measurable variable can be assigned an `RVTransform` instance,
             `DEFAULT_TRANSFORM`, or ``None``. Measurable variables with no
             transform specified remain unchanged.
+        rvs_to_values
 
         """
 
@@ -330,14 +326,16 @@ class TransformValuesRewrite(GraphRewriter):
     def add_requirements(
         self,
         fgraph,
-        rv_to_values: Dict[TensorVariable, TensorVariable],
-        memo: Dict[TensorVariable, TensorVariable],
+        rvs_to_values: Dict[TensorVariable, TensorVariable],
+        value_clone_to_value: Dict[TensorVariable, TensorVariable],
     ):
         values_to_transforms = {
-            rv_to_values[rv]: transform
+            rvs_to_values[rv]: transform
             for rv, transform in self.rvs_to_transforms.items()
         }
-        values_transforms_feature = TransformValuesMapping(values_to_transforms, memo)
+        values_transforms_feature = TransformValuesMapping(
+            values_to_transforms, value_clone_to_value
+        )
         fgraph.attach_feature(values_transforms_feature)
 
     def apply(self, fgraph: FunctionGraph):

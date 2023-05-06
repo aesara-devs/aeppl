@@ -1,11 +1,16 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import aesara.tensor as at
 from aesara.compile.mode import optdb
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
+from aesara.graph.rewriting.basic import (
+    GraphRewriter,
+    NodeRewriter,
+    in2out,
+    node_rewriter,
+)
 from aesara.graph.rewriting.db import EquilibriumDB, RewriteDatabaseQuery, SequenceDB
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.extra_ops import BroadcastTo
@@ -180,9 +185,10 @@ logprob_rewrites_db.register("post-canonicalize", optdb.query("+canonicalize"), 
 
 
 def construct_ir_fgraph(
-    rv_values: Dict[Variable, Variable],
+    rvs_to_values: Dict[Variable, Variable],
     ir_rewriter: Optional[GraphRewriter] = None,
-) -> Tuple[FunctionGraph, Dict[Variable, Variable], Dict[Variable, Variable]]:
+    extra_rewrites: Optional[Union[GraphRewriter, NodeRewriter]] = None,
+) -> Tuple[FunctionGraph, Dict[Variable, Variable]]:
     r"""Construct a `FunctionGraph` in measurable IR form for the keys in `rv_values`.
 
     A custom IR rewriter can be specified. By default,
@@ -215,9 +221,8 @@ def construct_ir_fgraph(
     Returns
     -------
     A `FunctionGraph` of the measurable IR, a copy of `rv_values` containing
-    the new, cloned versions of the original variables in `rv_values`, and
-    a ``dict`` mapping all the original variables to their cloned values in
-    the `FunctionGraph`.
+    the new, cloned versions of the original variables in `rv_values`.
+
     """
 
     # We're going to create a `FunctionGraph` that effectively represents the
@@ -233,16 +238,20 @@ def construct_ir_fgraph(
     # so that they're distinct nodes in the graph.  This allows us to replace
     # all instances of the original random variables with their value
     # variables, while leaving the output clones untouched.
-    rv_value_clones = {}
+    rv_clone_to_value_clone = {}
+    rv_to_value_clone = {}
+    value_clone_to_value = {}
     measured_outputs = {}
-    memo = {}
-    for rv, val in rv_values.items():
+    memo: Dict[Variable, Variable] = {}
+    for rv, val in rvs_to_values.items():
         rv_node_clone = rv.owner.clone()
         rv_clone = rv_node_clone.outputs[rv.owner.outputs.index(rv)]
-        rv_value_clones[rv_clone] = val
-        measured_outputs[rv] = valued_variable(rv_clone, val)
-        # Prevent value variables from being cloned
-        memo[val] = val
+        val_clone = val.clone()
+        val_clone.name = "val_clone"
+        rv_clone_to_value_clone[rv_clone] = val_clone
+        rv_to_value_clone[rv] = val_clone
+        value_clone_to_value[val_clone] = val
+        measured_outputs[rv] = valued_variable(rv_clone, val_clone)
 
     # We add `ShapeFeature` because it will get rid of references to the old
     # `RandomVariable`s that have been lifted; otherwise, it will be difficult
@@ -257,9 +266,6 @@ def construct_ir_fgraph(
         copy_inputs=False,
     )
 
-    # Update `rv_values` so that it uses the new cloned variables
-    rv_value_clones = {memo[k]: v for k, v in rv_value_clones.items()}
-
     # Replace valued non-output variables with their values
     fgraph.replace_all(
         [(memo[rv], val) for rv, val in measured_outputs.items() if rv in memo],
@@ -272,11 +278,22 @@ def construct_ir_fgraph(
 
     ir_rewriter.rewrite(fgraph)
 
+    if extra_rewrites is not None:
+        # Expect `value_clone_to_value` to be updated in-place
+        extra_rewrites.add_requirements(fgraph, rv_to_value_clone, value_clone_to_value)
+        extra_rewrites.apply(fgraph)
+
     # Undo un-valued measurable IR rewrites
     new_to_old = tuple((v, k) for k, v in fgraph.measurable_conversions.items())
-    fgraph.replace_all(new_to_old, reason="undo-unvalued-measurables")
+    # and add the original value variables back in
+    new_to_old += tuple(value_clone_to_value.items())
+    fgraph.replace_all(
+        new_to_old, reason="undo-unvalued-measurables", import_missing=True
+    )
 
-    return fgraph, rv_value_clones, memo
+    new_rvs_to_values = dict(zip(rvs_to_values.keys(), value_clone_to_value.values()))
+
+    return fgraph, new_rvs_to_values
 
 
 @register_useless
