@@ -141,18 +141,16 @@ def conditional_logprob(
     # maps to the logprob graphs and value variables before returning them.
     rv_values = {**original_rv_values, **realized}
 
-    fgraph, _, memo = construct_ir_fgraph(rv_values, ir_rewriter=ir_rewriter)
-
-    if extra_rewrites is not None:
-        extra_rewrites.add_requirements(fgraph, rv_values, memo)
-        extra_rewrites.apply(fgraph)
+    fgraph, new_rv_values = construct_ir_fgraph(
+        rv_values, ir_rewriter=ir_rewriter, extra_rewrites=extra_rewrites
+    )
 
     # We assign log-densities on a per-node basis, and not per-output/variable.
     realized_vars = set()
     new_to_old_rvs = {}
     nodes_to_vals: Dict["Apply", List[Tuple["Variable", "Variable"]]] = {}
 
-    for bnd_var, (old_mvar, old_val) in zip(fgraph.outputs, rv_values.items()):
+    for bnd_var, (old_mvar, val) in zip(fgraph.outputs, new_rv_values.items()):
         mnode = bnd_var.owner
         assert mnode and isinstance(mnode.op, ValuedVariable)
 
@@ -165,11 +163,7 @@ def conditional_logprob(
         if old_mvar in realized:
             realized_vars.add(rv_var)
 
-        # Do this just in case a value variable was changed.  (Some transforms
-        # do this.)
-        new_val = memo[old_val]
-
-        nodes_to_vals.setdefault(rv_node, []).append((val_var, new_val))
+        nodes_to_vals.setdefault(rv_node, []).append((val_var, val))
 
         new_to_old_rvs[rv_var] = old_mvar
 

@@ -79,25 +79,20 @@ def test_unvalued_ir_reversion():
     """Make sure that un-valued IR rewrites are reverted."""
     srng = at.random.RandomStream(0)
 
-    x_rv = srng.normal()
+    x_rv = srng.normal(name="X")
     y_rv = at.clip(x_rv, 0, 1)
-    z_rv = srng.normal(y_rv, 1, name="z")
+    y_rv.name = "Y"
+    z_rv = srng.normal(y_rv, 1, name="Z")
     z_vv = z_rv.clone()
+    z_vv.name = "z"
 
     # Only the `z_rv` is "valued", so `y_rv` doesn't need to be converted into
     # measurable IR.
     rv_values = {z_rv: z_vv}
 
-    z_fgraph, _, memo = construct_ir_fgraph(rv_values)
+    z_fgraph, new_rvs_to_values = construct_ir_fgraph(rv_values)
 
-    assert memo[y_rv] in z_fgraph.measurable_conversions
-
-    measurable_y_rv = z_fgraph.measurable_conversions[memo[y_rv]]
-    assert isinstance(measurable_y_rv.owner.op, MeasurableClip)
-
-    # `construct_ir_fgraph` should've reverted the un-valued measurable IR
-    # change
-    assert measurable_y_rv not in z_fgraph
+    assert not any(isinstance(node.op, MeasurableClip) for node in z_fgraph.apply_nodes)
 
 
 def test_shifted_cumsum():

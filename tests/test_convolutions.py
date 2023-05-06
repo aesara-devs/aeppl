@@ -74,7 +74,7 @@ def test_add_independent_normals(mu_x, mu_y, sigma_x, sigma_y, x_shape, y_shape,
     Z_rv.name = "Z"
     z_vv = Z_rv.clone()
 
-    fgraph, _, _ = construct_ir_fgraph({Z_rv: z_vv})
+    fgraph, *_ = construct_ir_fgraph({Z_rv: z_vv})
 
     (valued_var_out_node) = fgraph.outputs[0].owner
     # The convolution should be applied, and not the transform
@@ -108,7 +108,7 @@ def test_normal_add_input_valued():
     Z_rv.name = "Z"
     z_vv = Z_rv.clone()
 
-    fgraph, _, _ = construct_ir_fgraph({Z_rv: z_vv, X_rv: x_vv})
+    fgraph, *_ = construct_ir_fgraph({Z_rv: z_vv, X_rv: x_vv})
 
     valued_var_out_node = fgraph.outputs[0].owner
     # We should not expect the convolution to be applied; instead, the
@@ -136,7 +136,7 @@ def test_normal_add_three_inputs():
     Z_rv.name = "Z"
     z_vv = Z_rv.clone()
 
-    fgraph, _, _ = construct_ir_fgraph({Z_rv: z_vv})
+    fgraph, *_ = construct_ir_fgraph({Z_rv: z_vv})
 
     valued_var_out_node = fgraph.outputs[0].owner
     # The convolution should be applied, and not the transform
