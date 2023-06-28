@@ -392,3 +392,23 @@ def test_mode_is_kept(remove_asserts):
     else:
         with pytest.raises(AssertionError):
             x_logp(x_vv=x_test_val)
+
+
+def test_gaussian_walk():
+    srng = at.random.utils.RandomStream(seed=234)
+
+    X0 = srng.normal(0.0, 1, name="X0")
+
+    def fn(x_last):
+        return srng.normal(x_last, 1.0)
+
+    X, _ = aesara.scan(
+        fn, outputs_info=[{"initial": X0, "taps": [-1]}], strict=True, n_steps=10
+    )
+
+    logprob, (X_vv, X0_vv) = joint_logprob(X, X0)
+
+    logprob_fn = aesara.function([X_vv, X0_vv], logprob)
+
+    res = logprob_fn(np.ones(10), 0.0)
+    assert res == pytest.approx(-10.60832387)
