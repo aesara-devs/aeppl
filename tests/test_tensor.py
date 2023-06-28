@@ -205,6 +205,7 @@ def test_join_mixed_ndim_supp():
     ],
 )
 @pytest.mark.parametrize("multivariate", (False, True))
+@pytest.mark.filterwarnings("ignore:`product`:DeprecationWarning")
 def test_measurable_dimshuffle(ds_order, multivariate):
     srng = at.random.RandomStream(2023532)
 
