@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.7", "3.10"]
+        python-version: ["3.8", "3.10"]
         fast-compile: [0]
         float32: [0]
         part:
@@ -152,7 +152,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Install dependencies
         run: |
